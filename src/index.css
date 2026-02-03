@@ -1,0 +1,262 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 0%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 0%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 0%;
+    --primary: 0 0% 0%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 0%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 40%;
+    --accent: 0 0% 96%;
+    --accent-foreground: 0 0% 0%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 88%;
+    --input: 0 0% 88%;
+    --ring: 0 0% 0%;
+    --radius: 0rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-white text-black antialiased;
+    font-family: 'Inter Tight', sans-serif;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f5f5f5;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #000;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #333;
+}
+
+/* Marquee animation */
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  animation: marquee 30s linear infinite;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+/* Grain overlay */
+.grain-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+}
+
+/* Magnetic button effect */
+.magnetic-btn {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Text reveal animation */
+.text-reveal {
+  overflow: hidden;
+}
+
+.text-reveal span {
+  display: inline-block;
+  transform: translateY(100%);
+  animation: textReveal 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes textReveal {
+  to {
+    transform: translateY(0);
+  }
+}
+
+/* Product card hover */
+.product-card {
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.product-card:hover {
+  transform: scale(1.02);
+}
+
+.product-card img {
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.product-card:hover img {
+  transform: scale(1.05);
+}
+
+/* Admin sidebar */
+.admin-sidebar {
+  @apply fixed left-0 top-0 h-full w-64 bg-black text-white z-50;
+}
+
+.admin-sidebar-link {
+  @apply flex items-center gap-3 px-6 py-4 text-sm font-medium transition-all duration-300;
+}
+
+.admin-sidebar-link:hover {
+  @apply bg-white/10;
+}
+
+.admin-sidebar-link.active {
+  @apply bg-white text-black;
+}
+
+/* Form inputs */
+input, textarea, select {
+  @apply border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:border-black transition-colors;
+}
+
+/* Button styles */
+.btn-primary {
+  @apply bg-black text-white px-8 py-4 text-sm font-medium tracking-wide hover:bg-gray-900 transition-colors;
+}
+
+.btn-secondary {
+  @apply bg-white text-black border border-black px-8 py-4 text-sm font-medium tracking-wide hover:bg-black hover:text-white transition-colors;
+}
+
+/* Stats card */
+.stats-card {
+  @apply bg-white border border-gray-200 p-6;
+}
+
+/* Order status badges */
+.status-pending {
+  @apply bg-yellow-100 text-yellow-800 px-3 py-1 text-xs font-medium;
+}
+
+.status-confirmed {
+  @apply bg-blue-100 text-blue-800 px-3 py-1 text-xs font-medium;
+}
+
+.status-shipped {
+  @apply bg-purple-100 text-purple-800 px-3 py-1 text-xs font-medium;
+}
+
+.status-delivered {
+  @apply bg-green-100 text-green-800 px-3 py-1 text-xs font-medium;
+}
+
+.status-cancelled {
+  @apply bg-red-100 text-red-800 px-3 py-1 text-xs font-medium;
+}
+
+/* Navigation island */
+.nav-island {
+  @apply fixed top-0 left-0 right-0 z-50 transition-all duration-500;
+}
+
+.nav-island.scrolled {
+  @apply top-4 left-1/2 -translate-x-1/2 w-auto max-w-3xl;
+}
+
+.nav-island.scrolled .nav-inner {
+  @apply bg-white/90 backdrop-blur-md shadow-lg rounded-full px-8 py-3;
+}
+
+/* Smooth scroll container */
+.lenis.lenis-smooth {
+  scroll-behavior: auto;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+/* Category filter */
+.category-filter {
+  @apply px-4 py-2 text-sm font-medium transition-all duration-300;
+}
+
+.category-filter.active {
+  @apply bg-black text-white;
+}
+
+.category-filter:not(.active) {
+  @apply text-gray-500 hover:text-black;
+}
+
+/* Image hover effect */
+.image-hover {
+  overflow: hidden;
+}
+
+.image-hover img {
+  transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.image-hover:hover img {
+  transform: scale(1.08);
+}
+
+/* Loading skeleton */
+.skeleton {
+  @apply bg-gray-200 animate-pulse;
+}
+
+/* Toast notification */
+.toast {
+  @apply fixed bottom-8 right-8 bg-black text-white px-6 py-4 text-sm font-medium z-50 transform translate-y-full opacity-0 transition-all duration-300;
+}
+
+.toast.show {
+  @apply translate-y-0 opacity-100;
+}
+
+/* Hide Kimi agent logo */
+.kimi-agent-logo,
+[class*="kimi"],
+[id*="kimi"],
+[role="img"][aria-label*="Kimi"],
+img[src*="kimi"],
+img[alt*="Kimi"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
