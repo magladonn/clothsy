@@ -16,13 +16,13 @@ export function ProductMarquee({ setView, setSelectedProduct }: ProductMarqueePr
   const sectionRef = useRef<HTMLElement>(null);
   const products = dataStore.getVisibleProducts();
 
+  // Create a larger list of products for the infinite loop effect
+  // We repeat the list 4 times to ensure it fills wide screens comfortably
+  const marqueeProducts = [...products, ...products, ...products, ...products];
+
   useEffect(() => {
     const track = trackRef.current;
     if (!track) return;
-
-    // Duplicate products for infinite scroll
-    const items = track.innerHTML;
-    track.innerHTML = items + items;
 
     const ctx = gsap.context(() => {
       // Scroll-based velocity boost
@@ -33,7 +33,10 @@ export function ProductMarquee({ setView, setSelectedProduct }: ProductMarqueePr
         onUpdate: (self) => {
           const velocity = Math.abs(self.getVelocity()) / 1000;
           const skewAmount = Math.min(velocity * 2, 15);
+          
           gsap.to(track, {
+            // This skews items slightly when you scroll fast (animation effect)
+            // If you want it PERFECTLY straight even when scrolling, change skewAmount to 0
             skewX: self.direction === 1 ? skewAmount : -skewAmount,
             duration: 0.3,
             ease: 'power2.out'
@@ -51,7 +54,8 @@ export function ProductMarquee({ setView, setSelectedProduct }: ProductMarqueePr
   };
 
   return (
-    <section ref={sectionRef} className="py-16 overflow-hidden -rotate-1">
+    // FIX 1: Removed "-rotate-1" class so the container is straight
+    <section ref={sectionRef} className="py-16 overflow-hidden">
       <div className="mb-8 px-8 md:px-16">
         <h2 className="text-2xl md:text-3xl font-bold tracking-tight">NEW DROPS</h2>
       </div>
@@ -61,9 +65,11 @@ export function ProductMarquee({ setView, setSelectedProduct }: ProductMarqueePr
         className="flex gap-6 animate-marquee will-change-transform"
         style={{ width: 'max-content' }}
       >
-        {products.map((product) => (
+        {/* FIX 2: Mapping over the duplicated array so React Clicks still work */}
+        {marqueeProducts.map((product, index) => (
           <div 
-            key={product.id}
+            // We use index in key because we have duplicate product IDs now
+            key={`${product.id}-${index}`} 
             onClick={() => handleProductClick(product)}
             className="product-card flex-shrink-0 w-[280px] md:w-[320px] cursor-pointer group"
           >
