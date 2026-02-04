@@ -15,7 +15,8 @@ import { AdminProducts } from '@/admin/Products';
 import { AdminOrders } from '@/admin/Orders';
 import { AdminSubscribers } from '@/admin/Subscribers';
 import { AdminStatistics } from '@/admin/Statistics';
-import { WhatsAppButton } from '@/components/WhatsAppButton'; // ✅ IMPORT ADDED
+import { WhatsAppButton } from '@/components/WhatsAppButton';
+import { Analytics } from '@vercel/analytics/react'; // ✅ 1. IMPORT ADDED
 import { dataStore } from '@/store/dataStore';
 import type { View, Product } from '@/types';
 import './App.css';
@@ -183,6 +184,9 @@ function App() {
 
       {/* ✅ WHATSAPP BUTTON (Only visible on public pages) */}
       {!isAdminView && <WhatsAppButton />}
+
+      {/* ✅ 2. ANALYTICS COMPONENT ADDED */}
+      <Analytics />
     </div>
   );
 }
