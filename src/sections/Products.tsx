@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { dataStore, formatPrice } from '@/store/dataStore';
+import { formatPrice } from '@/store/dataStore';
 import type { View, Product } from '@/types';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -9,38 +9,47 @@ gsap.registerPlugin(ScrollTrigger);
 interface ProductsProps {
   setView: (view: View) => void;
   setSelectedProduct: (product: Product) => void;
+  products: Product[]; // 👈 NEW: Now accepts real products from Supabase
 }
 
-export function Products({ setView, setSelectedProduct }: ProductsProps) {
+export function Products({ setView, setSelectedProduct, products: allProducts }: ProductsProps) {
   const [activeCategory, setActiveCategory] = useState('all');
-  const [products, setProducts] = useState<Product[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const gridRef = useRef<HTMLDivElement>(null);
 
+  // 👇 1. FILTERING LOGIC (Updated for Supabase data)
   useEffect(() => {
-    setProducts(dataStore.getProductsByCategory(activeCategory));
-  }, [activeCategory]);
+    if (activeCategory === 'all') {
+      setFilteredProducts(allProducts);
+    } else {
+      setFilteredProducts(allProducts.filter(p => p.category === activeCategory));
+    }
+  }, [activeCategory, allProducts]);
 
+  // 👇 2. GSAP ANIMATION (Kept exactly the same)
   useEffect(() => {
-    const ctx = gsap.context(() => {
-      gsap.fromTo(gridRef.current?.children || [],
-        { y: 50, opacity: 0 },
-        {
-          y: 0,
-          opacity: 1,
-          duration: 0.6,
-          stagger: 0.1,
-          ease: 'expo.out',
-          scrollTrigger: {
-            trigger: gridRef.current,
-            start: 'top 80%',
-            toggleActions: 'play none none none'
+    // Only run animation if we have products to show
+    if (filteredProducts.length > 0) {
+      const ctx = gsap.context(() => {
+        gsap.fromTo(gridRef.current?.children || [],
+          { y: 50, opacity: 0 },
+          {
+            y: 0,
+            opacity: 1,
+            duration: 0.6,
+            stagger: 0.1,
+            ease: 'expo.out',
+            scrollTrigger: {
+              trigger: gridRef.current,
+              start: 'top 80%',
+              toggleActions: 'play none none none'
+            }
           }
-        }
-      );
-    });
-
-    return () => ctx.revert();
-  }, [products]);
+        );
+      });
+      return () => ctx.revert();
+    }
+  }, [filteredProducts]);
 
   const handleProductClick = (product: Product) => {
     setSelectedProduct(product);
@@ -72,18 +81,24 @@ export function Products({ setView, setSelectedProduct }: ProductsProps) {
         ref={gridRef}
         className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6"
       >
-        {products.map((product) => (
+        {filteredProducts.map((product) => (
           <div 
             key={product.id}
             onClick={() => handleProductClick(product)}
             className="product-card cursor-pointer group"
           >
-            <div className="aspect-[3/4] bg-gray-100 mb-4 overflow-hidden">
+            <div className="aspect-[3/4] bg-gray-100 mb-4 overflow-hidden relative">
               <img 
-                src={product.images[0]} 
+                src={product.images && product.images[0] ? product.images[0] : ''} 
                 alt={product.name}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
               />
+               {/* Sold Out Badge */}
+               {!product.in_stock && (
+                  <div className="absolute top-2 right-2 bg-black text-white text-[10px] px-2 py-1 font-bold uppercase">
+                    Sold Out
+                  </div>
+                )}
             </div>
             <div>
               <p className="text-xs font-medium text-gray-500 mb-1">{product.code}</p>
@@ -94,9 +109,11 @@ export function Products({ setView, setSelectedProduct }: ProductsProps) {
         ))}
       </div>
 
-      {products.length === 0 && (
+      {filteredProducts.length === 0 && (
         <div className="text-center py-24">
-          <p className="text-gray-500">No products found in this category.</p>
+          <p className="text-gray-500">
+            {allProducts.length === 0 ? "Loading products..." : "No products found in this category."}
+          </p>
         </div>
       )}
     </section>
