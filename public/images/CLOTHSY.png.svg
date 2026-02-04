@@ -1,12 +1,1 @@
-<svg width="2000" height="600" xmlns="http://www.w3.org/2000/svg">
-  <style>
-    .logo-text {
-      font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
-      font-size: 200px;
-      font-weight: 900;
-      letter-spacing: 10px;
-      fill: #000000;
-    }
-  </style>
-  <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" class="logo-text">CLOTHSY</text>
-</svg>
+
