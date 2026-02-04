@@ -1,13 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { ArrowLeft, Check, Box, Image as ImageIcon } from 'lucide-react';
-import { dataStore, MOROCCAN_CITIES, FORMSPREE_CONFIG, formatPrice } from '@/store/dataStore';
+// 👇 1. IMPORT EMAILJS
+import emailjs from '@emailjs/browser';
+import { dataStore, MOROCCAN_CITIES, formatPrice } from '@/store/dataStore';
 import type { View, Product } from '@/types';
 
-// ModelViewer component using dangerouslySetInnerHTML to avoid TS issues
+// ModelViewer component 
 function ModelViewer({ src, alt }: { src: string; alt: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
-  
   useEffect(() => {
     if (containerRef.current) {
       containerRef.current.innerHTML = `
@@ -28,7 +29,6 @@ function ModelViewer({ src, alt }: { src: string; alt: string }) {
       `;
     }
   }, [src, alt]);
-  
   return <div ref={containerRef} className="w-full h-full" />;
 }
 
@@ -88,36 +88,30 @@ export function ProductDetail({ setView, product, setCartCount, setLastOrderId }
 
     setLastOrderId(newOrder.id);
 
-    // Submit to Formspree for email notification
+    // 👇 2. NEW EMAILJS LOGIC (WITH YOUR KEYS)
     try {
-      const formData = new FormData();
-      formData.append('_subject', `🛍️ NEW ORDER - CLOTHSY #${newOrder.id}`);
-      formData.append('_replyto', FORMSPREE_CONFIG.email);
-      formData.append('order_id', newOrder.id);
-      formData.append('full_name', customerData.customerName);
-      formData.append('phone', customerData.customerPhone);
-      formData.append('email', customerData.customerEmail || 'N/A');
-      formData.append('city', customerData.customerCity);
-      formData.append('address', customerData.customerAddress);
-      formData.append('notes', customerData.notes || 'N/A');
-      formData.append('product_name', product.name);
-      formData.append('product_code', product.code);
-      formData.append('size', selectedSize);
-      formData.append('color', selectedColor);
-      formData.append('quantity', quantity.toString());
-      formData.append('unit_price', product.price.toString());
-      formData.append('total', (product.price * quantity).toString());
-      formData.append('payment_method', 'Cash on Delivery');
-
-      await fetch(FORMSPREE_CONFIG.endpoint, {
-        method: 'POST',
-        body: formData,
-        headers: {
-          'Accept': 'application/json'
-        }
-      });
+      await emailjs.send(
+        "service_gn8ecp6", // Your Service ID
+        "template_ft3yuor", // Your Template ID
+        {
+          order_id: newOrder.id,
+          to_name: "Magladonn",
+          customer_name: customerData.customerName,
+          customer_phone: customerData.customerPhone,
+          customer_city: customerData.customerCity,
+          customer_address: customerData.customerAddress,
+          product_name: product.name,
+          size: selectedSize,
+          color: selectedColor,
+          quantity: quantity,
+          total_price: product.price * quantity,
+          notes: customerData.notes || "No notes"
+        },
+        "HyBzOZ_aiLwpVDlq0" // Your Public Key
+      );
+      console.log("Email sent successfully!");
     } catch (error) {
-      console.log('Formspree submission error (non-blocking):', error);
+      console.error("Email failed to send:", error);
     }
 
     setOrderSubmitted(true);
@@ -176,6 +170,7 @@ export function ProductDetail({ setView, product, setCartCount, setLastOrderId }
                     value={customerData.customerName}
                     onChange={(e) => setCustomerData({...customerData, customerName: e.target.value})}
                     placeholder="Your full name"
+                    className="w-full border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:border-black transition-colors"
                   />
                 </div>
                 <div>
@@ -186,6 +181,7 @@ export function ProductDetail({ setView, product, setCartCount, setLastOrderId }
                     value={customerData.customerPhone}
                     onChange={(e) => setCustomerData({...customerData, customerPhone: e.target.value})}
                     placeholder="06 XX XX XX XX"
+                    className="w-full border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:border-black transition-colors"
                   />
                 </div>
               </div>
@@ -197,6 +193,7 @@ export function ProductDetail({ setView, product, setCartCount, setLastOrderId }
                   value={customerData.customerEmail}
                   onChange={(e) => setCustomerData({...customerData, customerEmail: e.target.value})}
                   placeholder="your@email.com"
+                  className="w-full border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:border-black transition-colors"
                 />
               </div>
 
@@ -223,6 +220,7 @@ export function ProductDetail({ setView, product, setCartCount, setLastOrderId }
                   value={customerData.customerAddress}
                   onChange={(e) => setCustomerData({...customerData, customerAddress: e.target.value})}
                   placeholder="Street name, building number, apartment, etc."
+                  className="w-full border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:border-black transition-colors"
                 />
               </div>
 
@@ -233,6 +231,7 @@ export function ProductDetail({ setView, product, setCartCount, setLastOrderId }
                   value={customerData.notes}
                   onChange={(e) => setCustomerData({...customerData, notes: e.target.value})}
                   placeholder="Any special instructions..."
+                  className="w-full border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:border-black transition-colors"
                 />
               </div>
 
