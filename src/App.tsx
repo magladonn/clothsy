@@ -37,8 +37,8 @@ function App() {
         console.log("Fetching products from Supabase...");
         const { data, error } = await supabase
           .from('products')
-          .select('*')
-          .eq('visible', true); // Only fetch visible products
+          .select('*');
+          
 
         if (error) {
           console.error('Supabase Error:', error);
