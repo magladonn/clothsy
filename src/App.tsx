@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase'; // Make sure this path is correct!
 import { Navigation } from '@/components/Navigation';
 import { AdminSidebar } from '@/components/AdminSidebar';
 import { Hero } from '@/sections/Hero';
@@ -25,8 +26,34 @@ function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [lastOrderId, setLastOrderId] = useState('');
 
-  // Record visit on initial load
+  // 1. STATE FOR REAL PRODUCTS
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // 2. FETCH FROM SUPABASE ON LOAD
   useEffect(() => {
+    async function fetchProducts() {
+      try {
+        console.log("Fetching products from Supabase...");
+        const { data, error } = await supabase
+          .from('products')
+          .select('*')
+          .eq('visible', true); // Only fetch visible products
+
+        if (error) {
+          console.error('Supabase Error:', error);
+        } else if (data) {
+          console.log('Got products:', data);
+          setProducts(data);
+        }
+      } catch (err) {
+        console.error('Connection Error:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchProducts();
     dataStore.recordVisit();
   }, []);
 
@@ -41,14 +68,24 @@ function App() {
         return (
           <>
             <Hero setView={setCurrentView} />
-            <ProductMarquee setView={setCurrentView} setSelectedProduct={setSelectedProduct} />
+            {/* Pass the real products to Marquee */}
+            <ProductMarquee 
+              products={products} 
+              setView={setCurrentView} 
+              setSelectedProduct={setSelectedProduct} 
+            />
             <Footer setView={setCurrentView} />
           </>
         );
       case 'products':
         return (
           <>
-            <Products setView={setCurrentView} setSelectedProduct={setSelectedProduct} />
+            {/* Pass the real products to the Grid */}
+            <Products 
+              products={products} 
+              setView={setCurrentView} 
+              setSelectedProduct={setSelectedProduct} 
+            />
             <Footer setView={setCurrentView} />
           </>
         );
@@ -86,7 +123,7 @@ function App() {
         return (
           <>
             <Hero setView={setCurrentView} />
-            <ProductMarquee setView={setCurrentView} setSelectedProduct={setSelectedProduct} />
+            <ProductMarquee products={products} setView={setCurrentView} setSelectedProduct={setSelectedProduct} />
             <Footer setView={setCurrentView} />
           </>
         );
@@ -94,7 +131,6 @@ function App() {
   };
 
   const renderAdminView = () => {
-    // Check if admin is logged in
     if (!isAdmin) {
       return (
         <AdminLogin 
@@ -124,10 +160,8 @@ function App() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Grain Overlay */}
       <div className="grain-overlay" />
 
-      {/* Navigation (only for public views) */}
       {!isAdminView && (
         <Navigation 
           currentView={currentView}
@@ -137,7 +171,6 @@ function App() {
         />
       )}
 
-      {/* Admin Sidebar */}
       {isAdminView && isAdmin && (
         <AdminSidebar 
           currentView={currentView}
@@ -146,7 +179,6 @@ function App() {
         />
       )}
 
-      {/* Main Content */}
       <main className={isAdminView && isAdmin ? 'ml-64' : ''}>
         {isAdminView ? renderAdminView() : renderPublicView()}
       </main>
