@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { ArrowLeft, Check, Box, Image as ImageIcon } from 'lucide-react';
-// 👇 1. IMPORT EMAILJS
 import emailjs from '@emailjs/browser';
 import { dataStore, MOROCCAN_CITIES, formatPrice } from '@/store/dataStore';
 import type { View, Product } from '@/types';
@@ -41,7 +40,11 @@ interface ProductDetailProps {
 
 export function ProductDetail({ setView, product, setCartCount, setLastOrderId }: ProductDetailProps) {
   const [selectedSize, setSelectedSize] = useState('');
-  const [selectedColor, setSelectedColor] = useState(product.colors[0] || '');
+  const [selectedColor, setSelectedColor] = useState(product.colors && product.colors.length > 0 ? product.colors[0] : '');
+  
+  // 👇 NEW: State for the currently displayed image
+  const [activeImage, setActiveImage] = useState(product.images[0]);
+  
   const [quantity, setQuantity] = useState(1);
   const [showOrderForm, setShowOrderForm] = useState(false);
   const [orderSubmitted, setOrderSubmitted] = useState(false);
@@ -57,6 +60,12 @@ export function ProductDetail({ setView, product, setCartCount, setLastOrderId }
     customerCity: '',
     notes: ''
   });
+
+  // Reset active image when product changes
+  useEffect(() => {
+    setActiveImage(product.images[0]);
+    setSelectedColor(product.colors && product.colors.length > 0 ? product.colors[0] : '');
+  }, [product]);
 
   useEffect(() => {
     gsap.fromTo(contentRef.current,
@@ -88,11 +97,10 @@ export function ProductDetail({ setView, product, setCartCount, setLastOrderId }
 
     setLastOrderId(newOrder.id);
 
-    // 👇 2. NEW EMAILJS LOGIC (WITH YOUR KEYS)
     try {
       await emailjs.send(
-        "service_gn8ecp6", // Your Service ID
-        "template_ft3yuor", // Your Template ID
+        "service_gn8ecp6", 
+        "template_ft3yuor", 
         {
           order_id: newOrder.id,
           to_name: "Magladonn",
@@ -107,7 +115,7 @@ export function ProductDetail({ setView, product, setCartCount, setLastOrderId }
           total_price: product.price * quantity,
           notes: customerData.notes || "No notes"
         },
-        "HyBzOZ_aiLwpVDlq0" // Your Public Key
+        "HyBzOZ_aiLwpVDlq0" 
       );
       console.log("Email sent successfully!");
     } catch (error) {
@@ -266,42 +274,70 @@ export function ProductDetail({ setView, product, setCartCount, setLastOrderId }
       </button>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-        {/* Product Image / 3D Viewer */}
-        <div className="relative">
-          {/* View Toggle */}
-          {product.model3d && (
-            <div className="absolute top-4 right-4 z-10 flex bg-white shadow-lg rounded-full overflow-hidden">
-              <button
-                onClick={() => setShow3D(false)}
-                className={`p-3 transition-colors ${!show3D ? 'bg-black text-white' : 'hover:bg-gray-100'}`}
-                title="View Image"
-              >
-                <ImageIcon className="w-5 h-5" />
-              </button>
-              <button
-                onClick={() => setShow3D(true)}
-                className={`p-3 transition-colors ${show3D ? 'bg-black text-white' : 'hover:bg-gray-100'}`}
-                title="View 3D Model"
-              >
-                <Box className="w-5 h-5" />
-              </button>
+        {/* Product Images Column */}
+        <div>
+          <div className="relative">
+            {/* View Toggle */}
+            {product.model3d && (
+              <div className="absolute top-4 right-4 z-10 flex bg-white shadow-lg rounded-full overflow-hidden">
+                <button
+                  onClick={() => setShow3D(false)}
+                  className={`p-3 transition-colors ${!show3D ? 'bg-black text-white' : 'hover:bg-gray-100'}`}
+                  title="View Image"
+                >
+                  <ImageIcon className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => setShow3D(true)}
+                  className={`p-3 transition-colors ${show3D ? 'bg-black text-white' : 'hover:bg-gray-100'}`}
+                  title="View 3D Model"
+                >
+                  <Box className="w-5 h-5" />
+                </button>
+              </div>
+            )}
+            
+            <div className="aspect-[3/4] bg-gray-100 mb-4">
+              {show3D && product.model3d ? (
+                <ModelViewer 
+                  src={product.model3d} 
+                  alt={`${product.name} 3D Model`} 
+                />
+              ) : (
+                <img 
+                  src={activeImage || product.images[0]} // 👈 USES ACTIVE IMAGE
+                  alt={product.name}
+                  className="w-full h-full object-cover transition-opacity duration-300"
+                />
+              )}
+            </div>
+          </div>
+
+          {/* 👇 THUMBNAIL GALLERY */}
+          {product.images.length > 1 && (
+            <div className="grid grid-cols-4 gap-2">
+              {product.images.map((img, index) => (
+                <button
+                  key={index}
+                  onClick={() => {
+                    setActiveImage(img);
+                    setShow3D(false); // Switch back to image view if in 3D
+                  }}
+                  className={`aspect-[3/4] bg-gray-100 overflow-hidden border-2 transition-all ${
+                    activeImage === img && !show3D
+                      ? 'border-black' 
+                      : 'border-transparent hover:border-gray-300'
+                  }`}
+                >
+                  <img 
+                    src={img} 
+                    alt={`${product.name} view ${index + 1}`} 
+                    className="w-full h-full object-cover"
+                  />
+                </button>
+              ))}
             </div>
           )}
-          
-          <div className="aspect-[3/4] bg-gray-100">
-            {show3D && product.model3d ? (
-              <ModelViewer 
-                src={product.model3d} 
-                alt={`${product.name} 3D Model`} 
-              />
-            ) : (
-              <img 
-                src={product.images[0]} 
-                alt={product.name}
-                className="w-full h-full object-cover"
-              />
-            )}
-          </div>
         </div>
 
         {/* Product Info */}
@@ -313,7 +349,7 @@ export function ProductDetail({ setView, product, setCartCount, setLastOrderId }
           <p className="text-gray-600 mb-8">{product.description}</p>
 
           {/* Color Selection */}
-          {product.colors.length > 0 && (
+          {product.colors && product.colors.length > 0 && (
             <div className="mb-6">
               <label className="block text-sm font-medium mb-3">COLOR: {selectedColor}</label>
               <div className="flex gap-2">
