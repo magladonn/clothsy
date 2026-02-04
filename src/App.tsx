@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase'; // Make sure this path is correct!
+import { supabase } from '@/lib/supabase';
 import { Navigation } from '@/components/Navigation';
 import { AdminSidebar } from '@/components/AdminSidebar';
 import { Hero } from '@/sections/Hero';
@@ -15,6 +15,7 @@ import { AdminProducts } from '@/admin/Products';
 import { AdminOrders } from '@/admin/Orders';
 import { AdminSubscribers } from '@/admin/Subscribers';
 import { AdminStatistics } from '@/admin/Statistics';
+import { WhatsAppButton } from '@/components/WhatsAppButton'; // ✅ IMPORT ADDED
 import { dataStore } from '@/store/dataStore';
 import type { View, Product } from '@/types';
 import './App.css';
@@ -39,7 +40,6 @@ function App() {
           .from('products')
           .select('*');
           
-
         if (error) {
           console.error('Supabase Error:', error);
         } else if (data) {
@@ -68,7 +68,6 @@ function App() {
         return (
           <>
             <Hero setView={setCurrentView} />
-            {/* Pass the real products to Marquee */}
             <ProductMarquee 
               products={products} 
               setView={setCurrentView} 
@@ -80,7 +79,6 @@ function App() {
       case 'products':
         return (
           <>
-            {/* Pass the real products to the Grid */}
             <Products 
               products={products} 
               setView={setCurrentView} 
@@ -159,7 +157,7 @@ function App() {
   const isAdminView = currentView.startsWith('admin');
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white relative">
       <div className="grain-overlay" />
 
       {!isAdminView && (
@@ -182,6 +180,9 @@ function App() {
       <main className={isAdminView && isAdmin ? 'ml-64' : ''}>
         {isAdminView ? renderAdminView() : renderPublicView()}
       </main>
+
+      {/* ✅ WHATSAPP BUTTON (Only visible on public pages) */}
+      {!isAdminView && <WhatsAppButton />}
     </div>
   );
 }
