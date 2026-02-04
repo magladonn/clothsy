@@ -1,24 +1,30 @@
 import { useRef, useEffect } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { dataStore, formatPrice } from '@/store/dataStore';
+import { formatPrice } from '@/store/dataStore';
 import type { View, Product } from '@/types';
 
 gsap.registerPlugin(ScrollTrigger);
 
 interface ProductMarqueeProps {
+  products: Product[]; // ✅ Added this line so it accepts real data
   setView: (view: View) => void;
   setSelectedProduct: (product: Product) => void;
 }
 
-export function ProductMarquee({ setView, setSelectedProduct }: ProductMarqueeProps) {
+// ✅ Added 'products' to the function arguments
+export function ProductMarquee({ products, setView, setSelectedProduct }: ProductMarqueeProps) {
   const trackRef = useRef<HTMLDivElement>(null);
   const sectionRef = useRef<HTMLElement>(null);
-  const products = dataStore.getVisibleProducts();
+  
+  // ⚠️ Removed the line that fetched fake data:
+  // const products = dataStore.getVisibleProducts();
 
   // Create a larger list of products for the infinite loop effect
   // We repeat the list 4 times to ensure it fills wide screens comfortably
-  const marqueeProducts = [...products, ...products, ...products, ...products];
+  // Added a check (|| []) to prevent errors if products is loading
+  const safeProducts = products || [];
+  const marqueeProducts = [...safeProducts, ...safeProducts, ...safeProducts, ...safeProducts];
 
   useEffect(() => {
     const track = trackRef.current;
@@ -33,10 +39,9 @@ export function ProductMarquee({ setView, setSelectedProduct }: ProductMarqueePr
         onUpdate: (self) => {
           const velocity = Math.abs(self.getVelocity()) / 1000;
           const skewAmount = Math.min(velocity * 2, 15);
-          
+           
           gsap.to(track, {
             // This skews items slightly when you scroll fast (animation effect)
-            // If you want it PERFECTLY straight even when scrolling, change skewAmount to 0
             skewX: self.direction === 1 ? skewAmount : -skewAmount,
             duration: 0.3,
             ease: 'power2.out'
@@ -53,8 +58,12 @@ export function ProductMarquee({ setView, setSelectedProduct }: ProductMarqueePr
     setView('product-detail');
   };
 
+  // If no products are loaded yet, don't break the layout
+  if (safeProducts.length === 0) {
+    return null; 
+  }
+
   return (
-    // FIX 1: Removed "-rotate-1" class so the container is straight
     <section ref={sectionRef} className="py-16 overflow-hidden">
       <div className="mb-8 px-8 md:px-16">
         <h2 className="text-2xl md:text-3xl font-bold tracking-tight">NEW DROPS</h2>
@@ -65,7 +74,6 @@ export function ProductMarquee({ setView, setSelectedProduct }: ProductMarqueePr
         className="flex gap-6 animate-marquee will-change-transform"
         style={{ width: 'max-content' }}
       >
-        {/* FIX 2: Mapping over the duplicated array so React Clicks still work */}
         {marqueeProducts.map((product, index) => (
           <div 
             // We use index in key because we have duplicate product IDs now
@@ -75,7 +83,8 @@ export function ProductMarquee({ setView, setSelectedProduct }: ProductMarqueePr
           >
             <div className="aspect-[3/4] bg-gray-100 mb-4 overflow-hidden">
               <img 
-                src={product.images[0]} 
+                // ✅ UPDATED: Safer image check
+                src={product.images?.[0] || 'https://via.placeholder.com/300'} 
                 alt={product.name}
                 className="w-full h-full object-cover"
               />
