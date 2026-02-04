@@ -17,12 +17,15 @@ export function Products({ setView, setSelectedProduct, products: allProducts }:
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const gridRef = useRef<HTMLDivElement>(null);
 
-  // 👇 1. FILTERING LOGIC (Updated for Supabase data)
+  // 👇 1. FILTERING LOGIC (Updated to be Case-Insensitive)
   useEffect(() => {
     if (activeCategory === 'all') {
       setFilteredProducts(allProducts);
     } else {
-      setFilteredProducts(allProducts.filter(p => p.category === activeCategory));
+      setFilteredProducts(allProducts.filter(p => 
+        // ✅ FIX: Convert both to lowercase before comparing
+        p.category?.toLowerCase() === activeCategory.toLowerCase()
+      ));
     }
   }, [activeCategory, allProducts]);
 
