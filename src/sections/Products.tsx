@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { formatPrice } from '@/store/dataStore';
+import { dataStore, formatPrice } from '@/store/dataStore'; // Import dataStore
 import type { View, Product } from '@/types';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -9,28 +9,38 @@ gsap.registerPlugin(ScrollTrigger);
 interface ProductsProps {
   setView: (view: View) => void;
   setSelectedProduct: (product: Product) => void;
-  products: Product[]; // 👈 NEW: Now accepts real products from Supabase
 }
 
-export function Products({ setView, setSelectedProduct, products: allProducts }: ProductsProps) {
+export function Products({ setView, setSelectedProduct }: ProductsProps) {
   const [activeCategory, setActiveCategory] = useState('all');
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const gridRef = useRef<HTMLDivElement>(null);
 
- setProducts(dataStore.getProducts());
+  // 1. DATA FETCHING & SUBSCRIPTION
+  useEffect(() => {
+    // Initial load
+    setAllProducts(dataStore.getVisibleProducts());
 
-    // 2. Subscribe to updates (so it auto-updates when Supabase loads)
+    // Subscribe to real-time updates from Supabase/Store
     const unsubscribe = dataStore.subscribe(() => {
-      setProducts([...dataStore.getProducts()]); // Create new array to force React re-render
+      setAllProducts(dataStore.getVisibleProducts());
     });
 
-    // 3. Cleanup listener when leaving page
     return () => unsubscribe();
   }, []);
 
-  // 👇 2. GSAP ANIMATION (Kept exactly the same)
+  // 2. FILTERING LOGIC
   useEffect(() => {
-    // Only run animation if we have products to show
+    if (activeCategory === 'all') {
+      setFilteredProducts(allProducts);
+    } else {
+      setFilteredProducts(allProducts.filter(p => p.category === activeCategory));
+    }
+  }, [activeCategory, allProducts]);
+
+  // 3. GSAP ANIMATION
+  useEffect(() => {
     if (filteredProducts.length > 0) {
       const ctx = gsap.context(() => {
         gsap.fromTo(gridRef.current?.children || [],
@@ -96,7 +106,7 @@ export function Products({ setView, setSelectedProduct, products: allProducts }:
                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
               />
                {/* Sold Out Badge */}
-               {!product.in_stock && (
+               {!product.inStock && (
                   <div className="absolute top-2 right-2 bg-black text-white text-[10px] px-2 py-1 font-bold uppercase">
                     Sold Out
                   </div>
