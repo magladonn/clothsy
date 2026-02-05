@@ -17,17 +17,16 @@ export function Products({ setView, setSelectedProduct, products: allProducts }:
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const gridRef = useRef<HTMLDivElement>(null);
 
-  // 👇 1. FILTERING LOGIC (Updated to be Case-Insensitive)
-  useEffect(() => {
-    if (activeCategory === 'all') {
-      setFilteredProducts(allProducts);
-    } else {
-      setFilteredProducts(allProducts.filter(p => 
-        // ✅ FIX: Convert both to lowercase before comparing
-        p.category?.toLowerCase() === activeCategory.toLowerCase()
-      ));
-    }
-  }, [activeCategory, allProducts]);
+ setProducts(dataStore.getProducts());
+
+    // 2. Subscribe to updates (so it auto-updates when Supabase loads)
+    const unsubscribe = dataStore.subscribe(() => {
+      setProducts([...dataStore.getProducts()]); // Create new array to force React re-render
+    });
+
+    // 3. Cleanup listener when leaving page
+    return () => unsubscribe();
+  }, []);
 
   // 👇 2. GSAP ANIMATION (Kept exactly the same)
   useEffect(() => {
