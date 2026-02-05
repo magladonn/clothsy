@@ -8,17 +8,30 @@ export function AdminStatistics() {
   const [stats, setStats] = useState<SiteStats | null>(null);
 
   useEffect(() => {
+    // 1. Initial Load
     setOrders(dataStore.getOrders());
     setStats(dataStore.getStats());
+
+    // 2. Subscribe to updates (Auto-refresh when Supabase loads)
+    const unsubscribe = dataStore.subscribe(() => {
+      setOrders([...dataStore.getOrders()]);
+      setStats({ ...dataStore.getStats() });
+    });
+
+    // 3. Cleanup
+    return () => unsubscribe();
   }, []);
 
-  if (!stats) return <div>Loading...</div>;
+  if (!stats) return <div className="p-8">Loading stats...</div>;
 
   // Calculate top cities
   const cityCount: Record<string, number> = {};
   orders.forEach(order => {
-    cityCount[order.customerCity] = (cityCount[order.customerCity] || 0) + 1;
+    // Fallback if city is missing
+    const city = order.customerCity || 'Unknown'; 
+    cityCount[city] = (cityCount[city] || 0) + 1;
   });
+  
   const topCities = Object.entries(cityCount)
     .sort(([, a], [, b]) => b - a)
     .slice(0, 5);
