@@ -8,19 +8,31 @@ export function AdminOrders() {
   const [filter, setFilter] = useState<string>('all');
   const [viewingOrder, setViewingOrder] = useState<Order | null>(null);
 
+  // 1. UPDATED: Real-time Data Subscription
   useEffect(() => {
+    // Initial load
     setOrders(dataStore.getOrders());
+
+    // Subscribe to updates (Auto-refresh when DB changes)
+    const unsubscribe = dataStore.subscribe(() => {
+      setOrders([...dataStore.getOrders()]);
+    });
+
+    return () => unsubscribe();
   }, []);
 
-  const handleStatusChange = (orderId: string, newStatus: Order['status']) => {
-    dataStore.updateOrderStatus(orderId, newStatus);
-    setOrders(dataStore.getOrders());
+  // 2. UPDATED: Async handlers (UI updates automatically via subscription)
+  const handleStatusChange = async (orderId: string, newStatus: Order['status']) => {
+    await dataStore.updateOrderStatus(orderId, newStatus);
   };
 
-  const handleDeleteOrder = (orderId: string) => {
+  const handleDeleteOrder = async (orderId: string) => {
     if (confirm('Are you sure you want to delete this order?')) {
-      dataStore.deleteOrder(orderId);
-      setOrders(dataStore.getOrders());
+      await dataStore.deleteOrder(orderId);
+      // If we are viewing the deleted order, close the modal
+      if (viewingOrder?.id === orderId) {
+        setViewingOrder(null);
+      }
     }
   };
 
@@ -235,7 +247,10 @@ export function AdminOrders() {
                   />
                   <div>
                     <p className="font-medium">{viewingOrder.productName}</p>
-                    <p className="text-sm text-gray-500">Code: {viewingOrder.productCode}</p>
+                    {/* Note: productCode is not currently stored in DB orders table, so this might be empty */}
+                    {viewingOrder.productCode && (
+                       <p className="text-sm text-gray-500">Code: {viewingOrder.productCode}</p>
+                    )}
                     <p className="text-sm text-gray-500">Size: {viewingOrder.size} | Color: {viewingOrder.color}</p>
                     <p className="text-sm text-gray-500">Qty: {viewingOrder.quantity}</p>
                   </div>
