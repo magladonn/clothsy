@@ -16,7 +16,7 @@ import { AdminOrders } from '@/admin/Orders';
 import { AdminSubscribers } from '@/admin/Subscribers';
 import { AdminStatistics } from '@/admin/Statistics';
 import { WhatsAppButton } from '@/components/WhatsAppButton';
-import { inject } from '@vercel/analytics'; // 👈 CHANGED: Importing inject instead of Component
+import { inject } from '@vercel/analytics';
 import { dataStore } from '@/store/dataStore';
 import type { View, Product } from '@/types';
 import './App.css';
@@ -32,9 +32,9 @@ function App() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // ✅ NEW: Initialize Vercel Analytics manually
+  // Initialize Vercel Analytics
   useEffect(() => {
-    inject(); // 👈 Forces the analytics script to load
+    inject();
   }, []);
 
   // 2. FETCH FROM SUPABASE ON LOAD
@@ -44,13 +44,25 @@ function App() {
         console.log("Fetching products from Supabase...");
         const { data, error } = await supabase
           .from('products')
-          .select('*');
+          .select('*')
+          .order('created_at', { ascending: false }); // Show newest first
           
         if (error) {
           console.error('Supabase Error:', error);
         } else if (data) {
           console.log('Got products:', data);
           setProducts(data);
+          
+          // 👇 KEY FIX: Sync Supabase data to the store so Hero sees real products!
+          // We assume your dataStore has a method to set products, or we treat it dynamically
+          if (typeof (dataStore as any).setProducts === 'function') {
+             (dataStore as any).setProducts(data);
+          } else {
+             // Fallback: Manually overwrite the local cache if method doesn't exist
+             (dataStore as any).products = data;
+             // Trigger listeners if possible
+             if (typeof (dataStore as any).notify === 'function') (dataStore as any).notify();
+          }
         }
       } catch (err) {
         console.error('Connection Error:', err);
@@ -73,7 +85,8 @@ function App() {
       case 'home':
         return (
           <>
-            <Hero setView={setCurrentView} />
+            {/* 👇 FIX: Passed setSelectedProduct here */}
+            <Hero setView={setCurrentView} setSelectedProduct={setSelectedProduct} />
             <ProductMarquee 
               products={products} 
               setView={setCurrentView} 
@@ -126,7 +139,8 @@ function App() {
       default:
         return (
           <>
-            <Hero setView={setCurrentView} />
+            {/* 👇 FIX: Passed setSelectedProduct here too */}
+            <Hero setView={setCurrentView} setSelectedProduct={setSelectedProduct} />
             <ProductMarquee products={products} setView={setCurrentView} setSelectedProduct={setSelectedProduct} />
             <Footer setView={setCurrentView} />
           </>
@@ -187,10 +201,7 @@ function App() {
         {isAdminView ? renderAdminView() : renderPublicView()}
       </main>
 
-      {/* ✅ WHATSAPP BUTTON (Only visible on public pages) */}
       {!isAdminView && <WhatsAppButton />}
-
-      {/* ❌ REMOVED: <Analytics /> component is gone because we used inject() above */}
     </div>
   );
 }
