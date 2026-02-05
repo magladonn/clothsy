@@ -16,7 +16,6 @@ import { AdminOrders } from '@/admin/Orders';
 import { AdminSubscribers } from '@/admin/Subscribers';
 import { AdminStatistics } from '@/admin/Statistics';
 import { WhatsAppButton } from '@/components/WhatsAppButton';
-import { inject } from '@vercel/analytics';
 import { dataStore } from '@/store/dataStore';
 import type { View, Product } from '@/types';
 import './App.css';
@@ -30,12 +29,8 @@ function App() {
 
   // 1. STATE FOR REAL PRODUCTS
   const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  // Initialize Vercel Analytics
-  useEffect(() => {
-    inject();
-  }, []);
+  // We keep loading state but don't force a loading screen to keep UI snappy
+  const [, setLoading] = useState(true);
 
   // 2. FETCH FROM SUPABASE ON LOAD
   useEffect(() => {
@@ -45,7 +40,7 @@ function App() {
         const { data, error } = await supabase
           .from('products')
           .select('*')
-          .order('created_at', { ascending: false }); // Show newest first
+          .order('created_at', { ascending: false }); 
           
         if (error) {
           console.error('Supabase Error:', error);
@@ -53,14 +48,12 @@ function App() {
           console.log('Got products:', data);
           setProducts(data);
           
-          // 👇 KEY FIX: Sync Supabase data to the store so Hero sees real products!
-          // We assume your dataStore has a method to set products, or we treat it dynamically
-          if (typeof (dataStore as any).setProducts === 'function') {
+          // Sync to dataStore for Hero section
+          // Using strict type checking bypass to ensure build doesn't fail on store methods
+          if (dataStore && typeof (dataStore as any).setProducts === 'function') {
              (dataStore as any).setProducts(data);
           } else {
-             // Fallback: Manually overwrite the local cache if method doesn't exist
              (dataStore as any).products = data;
-             // Trigger listeners if possible
              if (typeof (dataStore as any).notify === 'function') (dataStore as any).notify();
           }
         }
@@ -85,7 +78,6 @@ function App() {
       case 'home':
         return (
           <>
-            {/* 👇 FIX: Passed setSelectedProduct here */}
             <Hero setView={setCurrentView} setSelectedProduct={setSelectedProduct} />
             <ProductMarquee 
               products={products} 
@@ -139,7 +131,6 @@ function App() {
       default:
         return (
           <>
-            {/* 👇 FIX: Passed setSelectedProduct here too */}
             <Hero setView={setCurrentView} setSelectedProduct={setSelectedProduct} />
             <ProductMarquee products={products} setView={setCurrentView} setSelectedProduct={setSelectedProduct} />
             <Footer setView={setCurrentView} />
