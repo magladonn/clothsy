@@ -1,11 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Product, Order, Subscriber, SiteStats, AdminUser } from '@/types';
 
-// ✅ 1. ADDED: EmailJS Configuration (Required for Contact Page)
+// ✅ 1. UPDATED: Real EmailJS Configuration
 export const EMAILJS_CONFIG = {
-  SERVICE_ID: 'service_clothsy',   // Replace with your real EmailJS Service ID
-  TEMPLATE_ID: 'template_contact', // Replace with your real EmailJS Template ID
-  PUBLIC_KEY: 'user_public_key'    // Replace with your real EmailJS Public Key
+  SERVICE_ID: 'service_gn8ecp6',
+  TEMPLATE_ID: 'template_ft3yuor',
+  PUBLIC_KEY: 'HyBzOZ_aiLwpVDlq0'
 };
 
 // ✅ 2. MOROCCAN CITIES (Required for Checkout)
