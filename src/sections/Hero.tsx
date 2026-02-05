@@ -5,7 +5,8 @@ import type { View, Product } from '@/types';
 
 interface HeroProps {
   setView: (view: View) => void;
-  setSelectedProduct: (product: Product) => void; // 👈 We added this so we can open products
+  // 👇 Fixed: Matches the state type in App.tsx perfectly
+  setSelectedProduct: (product: Product | null) => void; 
 }
 
 export function Hero({ setView, setSelectedProduct }: HeroProps) {
@@ -20,20 +21,27 @@ export function Hero({ setView, setSelectedProduct }: HeroProps) {
   // 1. Fetch Real Products
   useEffect(() => {
     // Initial load
-    setFeaturedProducts(dataStore.getProducts().slice(0, 2));
+    const products = dataStore.getProducts();
+    if (products.length > 0) {
+      setFeaturedProducts(products.slice(0, 2));
+    }
 
-    // Subscribe to updates (in case data loads late)
+    // Subscribe to updates
     const unsubscribe = dataStore.subscribe(() => {
       const allProducts = dataStore.getProducts();
-      // Get the 2 newest or specific products
       setFeaturedProducts(allProducts.slice(0, 2));
     });
 
-    return () => unsubscribe();
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, []);
 
   // 2. Animations
   useEffect(() => {
+    // Only run animation if elements exist
+    if (!headingRef.current || !subheadingRef.current || !ctaRef.current) return;
+
     const ctx = gsap.context(() => {
       gsap.fromTo(headingRef.current,
         { y: 100, opacity: 0 },
@@ -80,7 +88,7 @@ export function Hero({ setView, setSelectedProduct }: HeroProps) {
     });
 
     return () => ctx.revert();
-  }, [featuredProducts]); // Re-run animation if products load late
+  }, [featuredProducts]); 
 
   const handleProductClick = (product: Product) => {
     setSelectedProduct(product);
