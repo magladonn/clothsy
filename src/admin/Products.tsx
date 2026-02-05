@@ -1,46 +1,78 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, X, Image as ImageIcon } from 'lucide-react';
+import { Plus, Trash2, X, Eye, EyeOff } from 'lucide-react';
 import { dataStore, formatPrice } from '@/store/dataStore';
 import type { Product } from '@/types';
 
 export function AdminProducts() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Form State
   const [formData, setFormData] = useState({
     name: '',
     price: '',
     category: 'men',
     image: '',
-    code: ''
+    code: '',
+    description: ''
   });
 
+  // 1. Subscribe to Real Data
   useEffect(() => {
+    // Initial fetch
     setProducts(dataStore.getProducts());
+
+    // Listen for updates
+    const unsubscribe = dataStore.subscribe(() => {
+      setProducts([...dataStore.getProducts()]);
+    });
+
+    return () => unsubscribe();
   }, []);
 
-  const handleDelete = (id: string) => {
-    if (confirm('Delete this product?')) {
-      dataStore.deleteProduct(id);
-      setProducts(dataStore.getProducts());
+  // 2. Async Delete
+  const handleDelete = async (id: string) => {
+    if (confirm('Are you sure you want to permanently delete this product?')) {
+      await dataStore.deleteProduct(id);
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Create new product object
-    const newProduct: Product = {
-      id: Math.random().toString(36).substr(2, 9),
-      name: formData.name,
-      price: Number(formData.price),
-      category: formData.category as 'men' | 'women' | 'kids',
-      image: formData.image || 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?auto=format&fit=crop&q=80',
-      code: formData.code || `CL-${Math.floor(Math.random() * 1000)}`
-    };
+  // 3. Toggle Visibility (Hide/Show)
+  const handleToggleVisibility = async (id: string) => {
+    await dataStore.toggleProductVisibility(id);
+  };
 
-    dataStore.addProduct(newProduct);
-    setProducts(dataStore.getProducts());
-    setIsModalOpen(false);
-    setFormData({ name: '', price: '', category: 'men', image: '', code: '' });
+  // 4. Submit to Database
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      // Prepare the object for Supabase
+      // We fill in missing fields with defaults since your simple form doesn't have them yet
+      await dataStore.addProduct({
+        name: formData.name,
+        price: Number(formData.price),
+        category: formData.category,
+        code: formData.code || `CL-${Math.floor(Math.random() * 10000)}`, // Auto-generate if empty
+        images: formData.image ? [formData.image] : [],
+        description: formData.description || 'No description provided.',
+        sizes: ['S', 'M', 'L', 'XL'], // Default sizes
+        colors: ['Standard'],          // Default color
+        inStock: true,
+        visible: true
+      });
+
+      // Reset and close
+      setIsModalOpen(false);
+      setFormData({ name: '', price: '', category: 'men', image: '', code: '', description: '' });
+    } catch (error) {
+      alert('Failed to add product. Check console.');
+      console.error(error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -58,38 +90,63 @@ export function AdminProducts() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {products.map((product) => (
-          <div key={product.id} className="bg-white border border-gray-200 group relative">
+          <div key={product.id} className={`bg-white border border-gray-200 group relative ${!product.visible ? 'opacity-60' : ''}`}>
+            {/* Image Area */}
             <div className="aspect-[3/4] overflow-hidden bg-gray-100 relative">
               <img 
-                src={product.image} 
+                src={product.images && product.images[0] ? product.images[0] : 'https://placehold.co/400x600?text=No+Image'} 
                 alt={product.name}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               />
-              <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              
+              {/* Overlay Actions */}
+              <div className="absolute top-2 right-2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button 
+                  onClick={() => handleToggleVisibility(product.id)}
+                  className="p-2 bg-white text-gray-600 hover:text-black shadow-sm rounded-full"
+                  title={product.visible ? "Hide Product" : "Show Product"}
+                >
+                  {product.visible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                </button>
                 <button 
                   onClick={() => handleDelete(product.id)}
-                  className="p-2 bg-white text-red-600 hover:text-red-700 shadow-sm"
+                  className="p-2 bg-white text-red-600 hover:text-red-700 shadow-sm rounded-full"
+                  title="Delete"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
+
+              {!product.visible && (
+                <div className="absolute inset-0 bg-white/50 flex items-center justify-center">
+                  <span className="bg-black text-white text-xs px-2 py-1 font-bold uppercase">Hidden</span>
+                </div>
+              )}
             </div>
+
+            {/* Info Area */}
             <div className="p-4">
               <div className="flex justify-between items-start mb-1">
                 <h3 className="font-bold truncate pr-4">{product.name}</h3>
                 <span className="text-sm font-medium">{formatPrice(product.price)}</span>
               </div>
               <p className="text-sm text-gray-500 capitalize">{product.category}</p>
-              <p className="text-xs text-gray-400 mt-2">Code: {product.code || 'N/A'}</p>
+              <p className="text-xs text-gray-400 mt-2">Code: {product.code}</p>
             </div>
           </div>
         ))}
       </div>
 
+      {products.length === 0 && (
+        <div className="text-center py-20 text-gray-500">
+          No products found. Add one to get started!
+        </div>
+      )}
+
       {/* Add Product Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-md p-6">
+          <div className="bg-white w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-bold">Add New Product</h2>
               <button onClick={() => setIsModalOpen(false)}>
@@ -106,6 +163,7 @@ export function AdminProducts() {
                   value={formData.name}
                   onChange={e => setFormData({...formData, name: e.target.value})}
                   className="w-full p-2 border border-gray-300 focus:border-black outline-none"
+                  placeholder="e.g. Classic White Tee"
                 />
               </div>
               
@@ -118,6 +176,7 @@ export function AdminProducts() {
                     value={formData.price}
                     onChange={e => setFormData({...formData, price: e.target.value})}
                     className="w-full p-2 border border-gray-300 focus:border-black outline-none"
+                    placeholder="0.00"
                   />
                 </div>
                 <div>
@@ -130,13 +189,36 @@ export function AdminProducts() {
                     <option value="men">Men</option>
                     <option value="women">Women</option>
                     <option value="kids">Kids</option>
+                    <option value="accessories">Accessories</option>
                   </select>
                 </div>
               </div>
 
               <div>
+                <label className="block text-sm font-medium mb-1">Code (Optional)</label>
+                <input
+                  type="text"
+                  value={formData.code}
+                  onChange={e => setFormData({...formData, code: e.target.value})}
+                  className="w-full p-2 border border-gray-300 focus:border-black outline-none"
+                  placeholder="Leave empty to auto-generate"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Description</label>
+                <textarea
+                  value={formData.description}
+                  onChange={e => setFormData({...formData, description: e.target.value})}
+                  className="w-full p-2 border border-gray-300 focus:border-black outline-none"
+                  placeholder="Short description..."
+                  rows={2}
+                />
+              </div>
+
+              <div>
                 <label className="block text-sm font-medium mb-1">Image URL</label>
-                <div className="flex gap-2">
+                <div className="flex flex-col gap-2">
                   <input
                     type="url"
                     value={formData.image}
@@ -145,13 +227,19 @@ export function AdminProducts() {
                     className="w-full p-2 border border-gray-300 focus:border-black outline-none"
                   />
                   {formData.image && (
-                    <img src={formData.image} alt="Preview" className="w-10 h-10 object-cover border" />
+                    <div className="aspect-square w-20 bg-gray-100 border rounded overflow-hidden">
+                       <img src={formData.image} alt="Preview" className="w-full h-full object-cover" />
+                    </div>
                   )}
                 </div>
               </div>
 
-              <button type="submit" className="btn-primary w-full mt-4">
-                Save Product
+              <button 
+                type="submit" 
+                disabled={isSubmitting}
+                className="btn-primary w-full mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSubmitting ? 'Saving...' : 'Save Product'}
               </button>
             </form>
           </div>
