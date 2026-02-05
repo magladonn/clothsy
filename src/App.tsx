@@ -16,7 +16,7 @@ import { AdminOrders } from '@/admin/Orders';
 import { AdminSubscribers } from '@/admin/Subscribers';
 import { AdminStatistics } from '@/admin/Statistics';
 import { WhatsAppButton } from '@/components/WhatsAppButton';
-import { inject } from '@vercel/analytics'; // 👈 CHANGED: Importing inject instead of Component
+import { Analytics } from '@vercel/analytics/react';
 import { dataStore } from '@/store/dataStore';
 import type { View, Product } from '@/types';
 import './App.css';
@@ -32,10 +32,7 @@ function App() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // ✅ NEW: Initialize Vercel Analytics manually
-  useEffect(() => {
-    inject(); // 👈 Forces the analytics script to load
-  }, []);
+
 
   // 2. FETCH FROM SUPABASE ON LOAD
   useEffect(() => {
@@ -190,7 +187,8 @@ function App() {
       {/* ✅ WHATSAPP BUTTON (Only visible on public pages) */}
       {!isAdminView && <WhatsAppButton />}
 
-      {/* ❌ REMOVED: <Analytics /> component is gone because we used inject() above */}
+      {/* Vercel Web Analytics */}
+      <Analytics />
     </div>
   );
 }
