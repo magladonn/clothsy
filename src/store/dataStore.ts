@@ -1,3 +1,4 @@
+import { createClient } from '@supabase/supabase-js';
 import type { Product, Order, Subscriber, SiteStats, AdminUser } from '@/types';
 
 // Admin credentials
@@ -7,380 +8,276 @@ export const ADMIN_USERS: AdminUser[] = [
   { username: 'admin3', password: 'clothsy2025' }
 ];
 
-// ALL Moroccan cities (complete list from all 12 regions)
-export const MOROCCAN_CITIES = [
-  // Casablanca-Settat Region
-  'Casablanca', 'Mohammedia', 'Settat', 'El Jadida', 'Benslimane', 'Berrechid', 'Mediouna', 'Nouaceur',
-  'Tit Mellil', 'Ain Harrouda', 'Sidi Rahal', 'Bouznika', 'Skhirat', 'Ben Ahmed', 'Oulad Frej',
-  'Sidi Bennour', 'Sidi Smail', 'Azemmour', 'Oualidia', 'Zemamra', 'Bir Jdid', 'Lahraouyine',
-  'Ain Sebaa', 'Hay Hassani', 'Sidi Bernoussi', 'Sidi Moumen', 'Ben Msik', 'Sidi Othmane',
-  'Al Fida', 'Mers Sultan', 'Anfa', 'Maarif', 'Gauthier', 'Racine', 'Bourgogne',
-  'Les Hopitaux', 'Sidi Maarouf', 'Californie', 'Oasis', 'Ain Chock', 'Hay Mohammadi',
-  // Rabat-Sale-Kenitra Region
-  'Rabat', 'Sale', 'Kenitra', 'Temara', 'Skhirat', 'Khemisset', 'Sidi Slimane', 'Sidi Yahya',
-  'Sidi Kacem', 'Mehdia', 'Salé El Jadida', 'Tabriquet', 'Bettana', 'Hssain', 'Bab Lamrissa',
-  'Hay Karima', 'Hay Rahma', 'El Menzeh', 'Souissi', 'Agdal', 'Hassan', 'Les Orangers',
-  // Marrakech-Safi Region
-  'Marrakech', 'Safi', 'El Kelaa des Sraghna', 'Essaouira', 'Youssoufia', 'Chichaoua',
-  'Ben Guerir', 'Tameslouht', 'Ait Ourir', 'Amizmiz', 'Asni', 'Tahannaout', 'Tamansourt',
-  'Sidi Rahhal', 'Smimou', 'Tafetachte', 'Talmest', 'Tamanar', 'Ida Ougourd', 'Imintanoute',
-  // Fes-Meknes Region
-  'Fes', 'Meknes', 'Taza', 'Sefrou', 'Boulemane', 'Moulay Yacoub', 'El Hajeb', 'Ifrane',
-  'Azrou', 'Bhalil', 'Imouzzer Kandar', 'Ain Taoujdate', 'My Ali Cherif', 'Missour',
-  'Outat El Haj', 'Rissani', 'Arfoud', 'Ahermoumou', 'Boufakrane', 'Mrirt', 'Khenifra',
-  // Tangier-Tetouan-Al Hoceima Region
-  'Tangier', 'Tetouan', 'Al Hoceima', 'Larache', 'Asilah', 'Fnideq', 'Martil', 'Mdiq',
-  'Chefchaouen', 'Oued Laou', 'Bab Berred', 'Bab Taza', 'Bni Bouayach', 'Bni Hadifa',
-  'Imzouren', 'Issaguen', 'Ketama', 'Ouezzane', 'Targuist', 'Taza El Jadida', 'Zoumi',
-  // Oriental Region
-  'Oujda', 'Nador', 'Berkane', 'Jerada', 'Taourirt', 'Figuig', 'Ain Beni Mathar',
-  'Ahfir', 'Ain El Aouda', 'Ain Erreggada', 'Beni Ansar', 'Beni Drar', 'Bouanane',
-  'Bouarfa', 'Bouhdila', 'Bni Tadjite', 'Debdou', 'Driouch', 'El Aioun', 'Guercif',
-  'Hassi Berkane', 'Jaadar', 'Laatamna', 'Madagh', 'Ras El Ma', 'Saidia', 'Selouane',
-  'Sidi Bouhria', 'Sidi Slimane Echcharaa', 'Tafoughalt', 'Tendrara', 'Touissit', 'Zaio',
-  // Souss-Massa Region
-  'Agadir', 'Inezgane', 'Ait Melloul', 'Tiznit', 'Taroudant', 'Oulad Teima', 'Tata',
-  'Biougra', 'Drargua', 'Dcheira El Jihadia', 'Aourir', 'Dcheira', 'Irherm', 'Lqliaa',
-  'Massa', 'Sidi Bibi', 'Sidi Ifni', 'Tafraout', 'Tamraght', 'Temsia', 'Ait Baha',
-  'Ait Iaaza', 'Aoulouz', 'El Guerdane', 'Imsouane', 'Sidi Moussa Lhamri', 'Taliouine',
-  // Guelmim-Oued Noun Region
-  'Guelmim', 'Tan-Tan', 'Sidi Ifni', 'Assa', 'Zag', 'Bouizakarne', 'Foum Zguid',
-  'Lakhsas', 'Plage Blanche', 'Taghjijt', 'Tiglit', 'Tighmert', 'Ait Boufoulen',
-  'Aouinet', 'Bouanane', 'Ibn Chambred', 'Lemsid', 'Tarsouat', 'Tigmmi',
-  // Laayoune-Sakia El Hamra Region
-  'Laayoune', 'Boujdour', 'Tarfaya', 'Es-Semara', 'Dakhla', 'Haouza', 'Jdiriya',
-  'El Marsa', 'Foum El Oued', 'Aousserd', 'Amgala', 'Bir Anzarane', 'Chlaghmim',
-  'Chtouka', 'Dougoum', 'Guelta Zemmur', 'Imlili', 'Jraifia', 'Lamsid', 'Mijik',
-  'Oum Dreyga', 'Tichla', 'Zoug', 'Chirfa', 'El Argoub', 'Guerguerat', 'Imlili',
-  // Dakhla-Oued Ed-Dahab Region
-  'Dakhla', 'Aousserd', 'Bir Gandouz', 'Gleibat El Foula', 'Imlili', 'Mijik',
-  'Oum Dreyga', 'Tichla', 'Zoug', 'Chirfa', 'El Argoub', 'Guerguerat', 'Aouinet',
-  'Bouanane', 'Ibn Chambred', 'Lemsid', 'Tarsouat', 'Tigmmi', 'Aglou', 'Aridal',
-  'Bouizakarne', 'Foum Zguid', 'Lakhsas', 'Plage Blanche', 'Taghjijt', 'Tiglit',
-  // Beni Mellal-Khenifra Region
-  'Beni Mellal', 'Khouribga', 'Khenifra', 'Azilal', 'Fquih Ben Salah', 'Ouaouizeght',
-  'Demnate', 'Kasba Tadla', 'Oulad Ayad', 'Souk Sebt Oulad Nemma', 'Zaouiat Cheikh',
-  'Afourar', 'Ait Ishaq', 'Ait Oum El Bekht', 'Boujniba', 'Boulanouare', 'Bradia',
-  'Dar Ould Zidouh', 'El Ksiba', 'Fetouaka', 'Had Bouhssoussen', 'Kasbat Troch',
-  'Kerrouchen', 'Mrirt', 'Naour', 'Oulad Mbarek', 'Oulad Yaich', 'Sidi Jaber',
-  'Sidi Lamine', 'Tafraout', 'Taghzirt', 'Tighassaline', 'Tizi Nisly', 'Zawyat',
-  // Draa-Tafilalet Region
-  'Errachidia', 'Ouarzazate', 'Midelt', 'Tinghir', 'Zagora', 'Rissani', 'Erfoud',
-  'Goulmima', 'Taznakht', 'Agdz', 'Alnif', 'Boumalne Dades', 'Imilchil', 'Mhamid',
-  'Nkob', 'Skoura', 'Tamegroute', 'Tazenakht', 'Tinejdad', 'Ait Hani', 'Amellagou',
-  'Amersid', 'Aoufous', 'Arfoud', 'Assoul', 'Boudnib', 'El Hart', 'Enjil', 'Errouha',
-  'Fezna', 'Ferkla', 'Gheris', 'Goulmima', 'Hassi Berdad', 'Hassi Mbarek', 'Hassi',
-  'Ighil N Oumgoun', 'Ighrem N Ougdal', 'Imider', 'Imilchil', 'Jorf', 'Ksar Tazougart',
-  'M Ssici', 'Melaab', 'Mibladen', 'Moulay Ali Cherif', 'My Brahim Salah', 'N Oual',
-  'Ouaouizeght', 'Ouarzazate', 'Rich', 'Sidi Ayad', 'Tabant', 'Taghzirt N Imilchil',
-  'Tamellalt', 'Tamedakhte', 'Tameslohte', 'Taznakht', 'Telouet', 'Tiddas', 'Tifernine',
-  'Tighdouine', 'Tighza', 'Tinejdad', 'Tisrasse', 'Tizi N Ougoug', 'Toundoute', 'Tounfite',
-  'Zagora', 'Zaouiat Sidi Hamza', 'Zaouiat Sidi Salah',
-  // Other
-  'Other'
-];
+// Supabase Configuration
+// Make sure these match your Dashboard -> Project Settings -> API
+const SUPABASE_URL = 'https://fdgvhmgxyxdnxwhvmrhk.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_StTNEygqktlS_s0p26-3yA_ioUXh10q';
+export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// EmailJS configuration - ✅ CONFIGURED
-export const EMAILJS_CONFIG = {
-  serviceId: 'service_gn8ecp6',
-  templateId: 'template_ft3yuor',
-  publicKey: 'HyBzOZ_aiLwpVDlq0',
-  email: 'clothsy.business.ma@gmail.com',
-  phone: '+212786193181'
-};
+export function formatPrice(price: number): string {
+  return `${price} MAD`;
+}
 
-// Formspree configuration
-export const FORMSPREE_CONFIG = {
-  endpoint: 'https://formspree.io/f/placeholder'
-};
-
-// Supabase configuration - ✅ CONFIGURED
-export const SUPABASE_CONFIG = {
-  url: 'https://fdgvhmgxyxdnxwhvmrhk.supabase.co',
-  apiKey: 'sb_publishable_StTNEygqktlS_s0p26-3yA_ioUXh10q'
-};
-
-// Sample products using the uploaded images
-const sampleProducts: Product[] = [
-  {
-    id: '1',
-    code: 'PK-01',
-    name: 'Hello Kitty Pink Pajama Pants',
-    description: 'Ultra-soft fleece pajama pants featuring the iconic Hello Kitty pattern. Perfect for lounging in style and comfort. Elastic waistband with drawstring for adjustable fit.',
-    price: 149,
-    sizes: ['S', 'M', 'L', 'XL'],
-    colors: ['Pink'],
-    images: ['/images/a6d77f0d-84ac-4b80-9f86-4c1914f66d41.jpeg'],
-    category: 'womens',
-    inStock: true,
-    visible: true,
-    createdAt: '2024-01-15T10:00:00Z'
-  },
-  {
-    id: '2',
-    code: 'JC-10',
-    name: 'Hello Kitty Lounge Pants',
-    description: 'Cozy lounge pants with all-over Hello Kitty print. Made from premium cotton blend for everyday comfort. Features elastic waist and relaxed fit.',
-    price: 129,
-    sizes: ['XS', 'S', 'M', 'L', 'XL'],
-    colors: ['Pink', 'White'],
-    images: ['/images/49f9b145-80e0-4a53-b888-c4e5c225091c.jpeg'],
-    category: 'womens',
-    inStock: true,
-    visible: true,
-    createdAt: '2024-01-14T14:30:00Z'
-  },
-  {
-    id: '3',
-    code: 'BL-01',
-    name: 'Essential Black Sweatpants',
-    description: 'Classic black sweatpants crafted from heavyweight cotton fleece. Features white drawstring, ribbed cuffs, and side pockets. The ultimate streetwear essential.',
-    price: 199,
-    sizes: ['S', 'M', 'L', 'XL', 'XXL'],
-    colors: ['Black', 'Gray', 'Navy'],
-    images: ['/images/fd23f38b-8591-46c9-97d1-c0df9da76fff.jpeg'],
-    category: 'mens',
-    inStock: true,
-    visible: true,
-    createdAt: '2024-01-13T09:15:00Z'
-  },
-  {
-    id: '4',
-    code: 'SL-03',
-    name: 'Minimal Cotton Tee',
-    description: 'Clean, minimal cotton t-shirt with perfect drape. Premium heavyweight fabric that holds its shape. Essential wardrobe staple.',
-    price: 99,
-    sizes: ['S', 'M', 'L', 'XL'],
-    colors: ['White', 'Black', 'Gray'],
-    images: ['/images/a6d77f0d-84ac-4b80-9f86-4c1914f66d41.jpeg'],
-    category: 'mens',
-    inStock: true,
-    visible: true,
-    createdAt: '2024-01-12T16:45:00Z'
-  },
-  {
-    id: '5',
-    code: 'SG-03',
-    name: 'Oversized Hoodie',
-    description: 'Ultra-comfortable oversized hoodie with dropped shoulders. Heavyweight fleece interior for maximum warmth. Perfect layering piece.',
-    price: 249,
-    sizes: ['S', 'M', 'L', 'XL'],
-    colors: ['Black', 'Gray', 'Beige'],
-    images: ['/images/fd23f38b-8591-46c9-97d1-c0df9da76fff.jpeg'],
-    category: 'womens',
-    inStock: true,
-    visible: true,
-    createdAt: '2024-01-11T11:20:00Z'
-  },
-  {
-    id: '6',
-    code: 'BP-02',
-    name: 'Canvas Tote Bag',
-    description: 'Durable canvas tote bag with minimalist design. Perfect for everyday carry. Reinforced handles and interior pocket.',
-    price: 79,
-    sizes: ['One Size'],
-    colors: ['Natural', 'Black'],
-    images: ['/images/49f9b145-80e0-4a53-b888-c4e5c225091c.jpeg'],
-    category: 'accessories',
-    inStock: true,
-    visible: true,
-    createdAt: '2024-01-10T13:00:00Z'
-  }
-];
-
-// Initialize store
 class DataStore {
-  private products: Product[] = [...sampleProducts];
+  private products: Product[] = [];
   private orders: Order[] = [];
   private subscribers: Subscriber[] = [];
-  private stats: SiteStats = {
-    totalVisits: 1247,
-    totalOrders: 89,
-    totalProducts: 6,
-    totalSubscribers: 234,
-    ordersByStatus: {
-      pending: 12,
-      confirmed: 25,
-      shipped: 35,
-      delivered: 15,
-      cancelled: 2
-    },
-    visitsByDate: [
-      { date: '2024-01-25', visits: 145 },
-      { date: '2024-01-26', visits: 189 },
-      { date: '2024-01-27', visits: 167 },
-      { date: '2024-01-28', visits: 203 },
-      { date: '2024-01-29', visits: 178 },
-      { date: '2024-01-30', visits: 198 },
-      { date: '2024-01-31', visits: 167 }
-    ],
-    ordersByDate: [
-      { date: '2024-01-25', orders: 10 },
-      { date: '2024-01-26', orders: 15 },
-      { date: '2024-01-27', orders: 12 },
-      { date: '2024-01-28', orders: 18 },
-      { date: '2024-01-29', orders: 14 },
-      { date: '2024-01-30', orders: 16 },
-      { date: '2024-01-31', orders: 4 }
-    ]
-  };
+  private stats: SiteStats | null = null;
+  private listeners: (() => void)[] = [];
 
-  // Admin Authentication
-  authenticateAdmin(username: string, password: string): boolean {
-    return ADMIN_USERS.some(admin => admin.username === username && admin.password === password);
+  constructor() {
+    this.init();
   }
 
-  // Products
+  // Initialize and fetch all data
+  async init() {
+    await Promise.all([
+      this.fetchProducts(),
+      this.fetchOrders(),
+      this.fetchSubscribers(),
+      this.fetchStats()
+    ]);
+    this.notifyListeners();
+  }
+
+  // --- Real-time Subscription System ---
+  subscribe(listener: () => void) {
+    this.listeners.push(listener);
+    return () => {
+      this.listeners = this.listeners.filter(l => l !== listener);
+    };
+  }
+
+  private notifyListeners() {
+    this.listeners.forEach(l => l());
+  }
+
+  // --- Products ---
+  async fetchProducts() {
+    const { data } = await supabase.from('products').select('*').order('created_at', { ascending: false });
+    if (data) {
+      // Map database snake_case to frontend camelCase
+      this.products = data.map(p => ({
+        ...p,
+        createdAt: p.created_at,
+        inStock: p.in_stock
+      }));
+    }
+  }
+
   getProducts(): Product[] {
-    return [...this.products].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return this.products;
   }
 
   getVisibleProducts(): Product[] {
-    return this.getProducts().filter(p => p.visible);
+    return this.products.filter(p => p.visible);
   }
 
-  getProductById(id: string): Product | undefined {
-    return this.products.find(p => p.id === id);
-  }
-
-  getProductsByCategory(category: string): Product[] {
-    if (category === 'all') return this.getVisibleProducts();
-    return this.products.filter(p => p.category === category && p.visible);
-  }
-
-  addProduct(product: Omit<Product, 'id' | 'createdAt'>): Product {
-    const newProduct: Product = {
-      ...product,
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString()
+  async addProduct(product: Omit<Product, 'id' | 'createdAt'>) {
+    // Convert to database format
+    const dbProduct = {
+      code: product.code,
+      name: product.name,
+      description: product.description,
+      price: product.price,
+      sizes: product.sizes,
+      colors: product.colors,
+      images: product.images,
+      category: product.category,
+      in_stock: product.inStock,
+      visible: product.visible
     };
-    this.products.push(newProduct);
-    this.stats.totalProducts = this.products.length;
-    return newProduct;
-  }
 
-  updateProduct(id: string, updates: Partial<Product>): boolean {
-    const index = this.products.findIndex(p => p.id === id);
-    if (index > -1) {
-      this.products[index] = { ...this.products[index], ...updates };
-      return true;
-    }
-    return false;
-  }
-
-  deleteProduct(id: string): boolean {
-    const index = this.products.findIndex(p => p.id === id);
-    if (index > -1) {
-      this.products.splice(index, 1);
-      this.stats.totalProducts = this.products.length;
-      return true;
-    }
-    return false;
-  }
-
-  toggleProductVisibility(id: string): boolean {
-    const product = this.products.find(p => p.id === id);
-    if (product) {
-      product.visible = !product.visible;
-      return true;
-    }
-    return false;
-  }
-
-  // Orders
-  getOrders(): Order[] {
-    return [...this.orders].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }
-
-  addOrder(order: Omit<Order, 'id' | 'createdAt' | 'status'>): Order {
-    const newOrder: Order = {
-      ...order,
-      id: 'CLTH-' + Date.now().toString().slice(-6),
-      status: 'pending',
-      createdAt: new Date().toISOString()
-    };
-    this.orders.push(newOrder);
-    this.stats.totalOrders++;
-    this.stats.ordersByStatus.pending++;
-    return newOrder;
-  }
-
-  updateOrderStatus(orderId: string, status: Order['status']): boolean {
-    const order = this.orders.find(o => o.id === orderId);
-    if (order) {
-      this.stats.ordersByStatus[order.status]--;
-      order.status = status;
-      this.stats.ordersByStatus[status]++;
-      return true;
-    }
-    return false;
-  }
-
-  deleteOrder(orderId: string): boolean {
-    const index = this.orders.findIndex(o => o.id === orderId);
-    if (index > -1) {
-      const order = this.orders[index];
-      this.stats.ordersByStatus[order.status]--;
-      this.orders.splice(index, 1);
-      this.stats.totalOrders--;
-      return true;
-    }
-    return false;
-  }
-
-  // Subscribers
-  getSubscribers(): Subscriber[] {
-    return [...this.subscribers];
-  }
-
-  addSubscriber(email: string): Subscriber | null {
-    if (this.subscribers.find(s => s.email === email)) {
+    const { data, error } = await supabase.from('products').insert([dbProduct]).select().single();
+    
+    if (error) {
+      console.error("Error adding product:", error);
       return null;
     }
-    const newSubscriber: Subscriber = {
-      id: Date.now().toString(),
-      email,
-      subscribedAt: new Date().toISOString()
+
+    if (data) {
+      // Add to local state immediately
+      const newProduct = { ...data, createdAt: data.created_at, inStock: data.in_stock };
+      this.products.unshift(newProduct);
+      this.notifyListeners();
+      return newProduct;
+    }
+  }
+
+  async deleteProduct(id: string) {
+    const { error } = await supabase.from('products').delete().eq('id', id);
+    if (!error) {
+      this.products = this.products.filter(p => p.id !== id);
+      this.notifyListeners();
+    }
+  }
+
+  async toggleProductVisibility(id: string) {
+    const product = this.products.find(p => p.id === id);
+    if (!product) return;
+
+    const newVisibility = !product.visible;
+    const { error } = await supabase.from('products').update({ visible: newVisibility }).eq('id', id);
+
+    if (!error) {
+      product.visible = newVisibility;
+      this.notifyListeners();
+    }
+  }
+
+  // --- Orders ---
+  async fetchOrders() {
+    const { data } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
+    if (data) {
+      this.orders = data.map(o => ({
+        id: o.id,
+        createdAt: o.created_at,
+        customerName: o.customer_name,
+        customerPhone: o.customer_phone,
+        customerCity: o.customer_city,
+        customerAddress: o.customer_address,
+        productName: o.product_name,
+        productPrice: o.product_price,
+        productImage: '', // We might need to join this or store it, leaving blank for now
+        quantity: o.quantity,
+        status: o.status,
+        size: o.size,
+        color: o.color,
+        notes: o.notes
+      }));
+    }
+  }
+
+  getOrders(): Order[] {
+    return this.orders;
+  }
+
+  async addOrder(order: any) {
+    const newId = `ORD-${Date.now().toString().slice(-6)}`;
+    
+    const dbOrder = {
+      id: newId,
+      customer_name: order.customerName,
+      customer_phone: order.customerPhone,
+      customer_city: order.customerCity,
+      customer_address: order.customerAddress,
+      product_id: order.productId || 'unknown',
+      product_name: order.productName,
+      product_price: order.productPrice,
+      size: order.size,
+      color: order.color,
+      quantity: order.quantity,
+      status: 'pending',
+      notes: order.notes
     };
-    this.subscribers.push(newSubscriber);
-    this.stats.totalSubscribers++;
-    return newSubscriber;
+
+    const { error } = await supabase.from('orders').insert([dbOrder]);
+
+    if (!error) {
+      // Refresh orders from DB to ensure clean state
+      await this.fetchOrders();
+      await this.updateStats('total_orders', 1);
+      this.notifyListeners();
+      return { id: newId };
+    }
+    return null;
   }
 
-  // Stats
+  async updateOrderStatus(orderId: string, status: string) {
+    const { error } = await supabase.from('orders').update({ status }).eq('id', orderId);
+    if (!error) {
+      const order = this.orders.find(o => o.id === orderId);
+      if (order) order.status = status as any;
+      this.notifyListeners();
+    }
+  }
+
+  async deleteOrder(orderId: string) {
+    const { error } = await supabase.from('orders').delete().eq('id', orderId);
+    if (!error) {
+      this.orders = this.orders.filter(o => o.id !== orderId);
+      this.notifyListeners();
+    }
+  }
+
+  // --- Subscribers ---
+  async fetchSubscribers() {
+    const { data } = await supabase.from('subscribers').select('*');
+    if (data) {
+      this.subscribers = data.map(s => ({
+        id: s.id,
+        email: s.email,
+        subscribedAt: s.subscribed_at || new Date().toISOString() // Handle fallback
+      }));
+    }
+  }
+
+  getSubscribers() {
+    return this.subscribers;
+  }
+
+  // --- Stats ---
+  async fetchStats() {
+    const { data } = await supabase.from('site_stats').select('*').single();
+    if (data) {
+      this.stats = {
+        totalVisits: data.total_visits,
+        totalOrders: data.total_orders,
+        totalProducts: data.total_products,
+        totalSubscribers: data.total_subscribers,
+        // Calculate these dynamically from the arrays for now
+        ordersByStatus: this.calculateOrderStatus(),
+        visitsByDate: [], // Requires separate table implementation
+        ordersByDate: []  // Requires separate logic
+      };
+    }
+  }
+
+  private async updateStats(field: string, increment: number) {
+    // Using RPC is better, but simple update works for low traffic
+    // Note: In production, create a Postgres function 'increment_stat'
+    const { data } = await supabase.from('site_stats').select(field).single();
+    if (data) {
+      const newValue = (data as any)[field] + increment;
+      await supabase.from('site_stats').update({ [field]: newValue }).eq('id', 1);
+    }
+  }
+
   getStats(): SiteStats {
-    return { ...this.stats };
+    if (!this.stats) {
+       // Return empty default while loading
+       return {
+         totalVisits: 0, totalOrders: 0, totalProducts: 0, totalSubscribers: 0,
+         ordersByStatus: { pending: 0, confirmed: 0, shipped: 0, delivered: 0, cancelled: 0 },
+         visitsByDate: [], ordersByDate: []
+       };
+    }
+    // Ensure dynamic stats are fresh
+    return {
+      ...this.stats,
+      ordersByStatus: this.calculateOrderStatus(),
+      totalProducts: this.products.length,
+      totalOrders: this.orders.length,
+      totalSubscribers: this.subscribers.length
+    };
   }
 
-  recordVisit(): void {
-    this.stats.totalVisits++;
-    const today = new Date().toISOString().split('T')[0];
-    const todayEntry = this.stats.visitsByDate.find(v => v.date === today);
-    if (todayEntry) {
-      todayEntry.visits++;
-    } else {
-      this.stats.visitsByDate.push({ date: today, visits: 1 });
-    }
-    if (this.stats.visitsByDate.length > 7) {
-      this.stats.visitsByDate.shift();
-    }
+  private calculateOrderStatus() {
+    const counts = { pending: 0, confirmed: 0, shipped: 0, delivered: 0, cancelled: 0 };
+    this.orders.forEach(o => {
+      if (counts[o.status] !== undefined) counts[o.status]++;
+    });
+    return counts;
   }
 
-  // Export orders to CSV
   exportOrdersToCSV(): string {
-    const orders = this.getOrders();
-    const headers = ['Order ID,Date,Customer,Phone,City,Items,Total,Status,Notes'];
-    const rows = orders.map(order => {
-      const total = order.productPrice * order.quantity;
-      return `${order.id},${new Date(order.createdAt).toLocaleDateString()},${order.customerName},${order.customerPhone},${order.customerCity},${order.quantity},${total},${order.status},"${order.notes || ''}"`;
+    const headers = ['Order ID,Date,Customer,Phone,City,Items,Total,Status'];
+    const rows = this.orders.map(o => {
+      const total = o.productPrice * o.quantity;
+      return `${o.id},${new Date(o.createdAt).toLocaleDateString()},${o.customerName},${o.customerPhone},${o.customerCity},${o.quantity},${total},${o.status}`;
     });
     return [...headers, ...rows].join('\n');
   }
 }
 
 export const dataStore = new DataStore();
-
-// Format price in MAD
-export function formatPrice(price: number): string {
-  return `${price} MAD`;
-}
