@@ -42,11 +42,12 @@ export function ProductDetail({ setView, product, setCartCount, setLastOrderId }
   const [selectedSize, setSelectedSize] = useState('');
   const [selectedColor, setSelectedColor] = useState(product.colors && product.colors.length > 0 ? product.colors[0] : '');
   
-  // 👇 NEW: State for the currently displayed image
+  // State for the currently displayed image
   const [activeImage, setActiveImage] = useState(product.images[0]);
   
   const [quantity, setQuantity] = useState(1);
   const [showOrderForm, setShowOrderForm] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderSubmitted, setOrderSubmitted] = useState(false);
   const [show3D, setShow3D] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -82,23 +83,33 @@ export function ProductDetail({ setView, product, setCartCount, setLastOrderId }
       return;
     }
 
-    // Create order in dataStore
-    const newOrder = dataStore.addOrder({
-      productId: product.id,
-      productCode: product.code,
-      productName: product.name,
-      productImage: product.images[0],
-      productPrice: product.price,
-      size: selectedSize,
-      color: selectedColor,
-      quantity: quantity,
-      ...customerData
-    });
-
-    setLastOrderId(newOrder.id);
+    setIsSubmitting(true);
 
     try {
-      await emailjs.send(
+      // 1. Save to Database (Supabase)
+      // We use await here to ensure the ID is generated and saved first
+      const newOrder = await dataStore.addOrder({
+        productId: product.id,
+        productCode: product.code,
+        productName: product.name,
+        productImage: product.images[0],
+        productPrice: product.price,
+        size: selectedSize,
+        color: selectedColor,
+        quantity: quantity,
+        customerName: customerData.customerName,
+        customerPhone: customerData.customerPhone,
+        customerEmail: customerData.customerEmail,
+        customerAddress: customerData.customerAddress,
+        customerCity: customerData.customerCity,
+        notes: customerData.notes || ''
+      });
+
+      // 2. Set ID for confirmation page
+      setLastOrderId(newOrder.id);
+
+      // 3. Send Email Notification (Non-blocking)
+      emailjs.send(
         "service_gn8ecp6", 
         "template_ft3yuor", 
         {
@@ -116,18 +127,27 @@ export function ProductDetail({ setView, product, setCartCount, setLastOrderId }
           notes: customerData.notes || "No notes"
         },
         "HyBzOZ_aiLwpVDlq0" 
-      );
-      console.log("Email sent successfully!");
-    } catch (error) {
-      console.error("Email failed to send:", error);
-    }
+      ).then(() => {
+        console.log("Email sent successfully");
+      }).catch((err) => {
+        console.error("Email failed", err);
+      });
 
-    setOrderSubmitted(true);
-    setCartCount((prev: number) => prev + 1);
-    
-    setTimeout(() => {
-      setView('confirmation');
-    }, 2000);
+      // 4. Update UI
+      setOrderSubmitted(true);
+      setCartCount((prev: number) => prev + 1);
+      
+      // Redirect after delay
+      setTimeout(() => {
+        setView('confirmation');
+      }, 2000);
+
+    } catch (error) {
+      console.error("Order submission failed:", error);
+      alert("Failed to place order. Please check your internet connection and try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (showOrderForm) {
@@ -146,9 +166,9 @@ export function ProductDetail({ setView, product, setCartCount, setLastOrderId }
           <p className="text-gray-600 mb-8">Cash on Delivery - Pay when you receive</p>
 
           {orderSubmitted ? (
-            <div className="bg-green-50 border border-green-200 p-8 text-center">
+            <div className="bg-green-50 border border-green-200 p-8 text-center animate-fade-in">
               <Check className="w-12 h-12 text-green-600 mx-auto mb-4" />
-              <h3 className="text-xl font-bold text-green-800 mb-2">Order Placed!</h3>
+              <h3 className="text-xl font-bold text-green-800 mb-2">Order Placed Successfully!</h3>
               <p className="text-green-700">Redirecting to confirmation...</p>
             </div>
           ) : (
@@ -253,8 +273,16 @@ export function ProductDetail({ setView, product, setCartCount, setLastOrderId }
                 <p className="text-sm text-gray-500 mt-1 ml-7">Pay when you receive your order</p>
               </div>
 
-              <button type="submit" className="btn-primary w-full">
-                PLACE ORDER (CASH ON DELIVERY)
+              <button 
+                type="submit" 
+                disabled={isSubmitting}
+                className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2"
+              >
+                {isSubmitting ? (
+                  <>Processing...</>
+                ) : (
+                  <>PLACE ORDER (CASH ON DELIVERY)</>
+                )}
               </button>
             </form>
           )}
@@ -305,7 +333,7 @@ export function ProductDetail({ setView, product, setCartCount, setLastOrderId }
                 />
               ) : (
                 <img 
-                  src={activeImage || product.images[0]} // 👈 USES ACTIVE IMAGE
+                  src={activeImage || product.images[0]} 
                   alt={product.name}
                   className="w-full h-full object-cover transition-opacity duration-300"
                 />
@@ -313,7 +341,7 @@ export function ProductDetail({ setView, product, setCartCount, setLastOrderId }
             </div>
           </div>
 
-          {/* 👇 THUMBNAIL GALLERY */}
+          {/* THUMBNAIL GALLERY */}
           {product.images.length > 1 && (
             <div className="grid grid-cols-4 gap-2">
               {product.images.map((img, index) => (
