@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { Analytics } from "@vercel/analytics/react"; // ✅ ADDED THIS
 import { Navigation } from '@/components/Navigation';
 import { AdminSidebar } from '@/components/AdminSidebar';
 import { Hero } from '@/sections/Hero';
@@ -193,6 +194,9 @@ function App() {
       </main>
 
       {!isAdminView && <WhatsAppButton />}
+      
+      {/* ✅ ADDED: This makes the Vercel Analytics work */}
+      <Analytics />
     </div>
   );
 }
