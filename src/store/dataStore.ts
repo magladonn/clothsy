@@ -1,6 +1,15 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Product, Order, Subscriber, SiteStats, AdminUser } from '@/types';
 
+// ✅ 1. ADDED: This was causing the build error
+export const MOROCCAN_CITIES = [
+  "Casablanca", "Rabat", "Marrakech", "Fes", "Tangier",
+  "Agadir", "Meknes", "Oujda", "Kenitra", "Tetouan",
+  "Safi", "Mohammedia", "Beni Mellal", "Khouribga", "El Jadida",
+  "Nador", "Taza", "Settat", "Berrechid", "Khemisset",
+  "Laayoune", "Dakhla", "Errachidia"
+];
+
 // Admin credentials
 export const ADMIN_USERS: AdminUser[] = [
   { username: 'admin1', password: 'clothsy2025' },
@@ -9,7 +18,6 @@ export const ADMIN_USERS: AdminUser[] = [
 ];
 
 // Supabase Configuration
-// Make sure these match your Dashboard -> Project Settings -> API
 const SUPABASE_URL = 'https://fdgvhmgxyxdnxwhvmrhk.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_StTNEygqktlS_s0p26-3yA_ioUXh10q';
 export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -48,7 +56,7 @@ class DataStore {
     };
   }
 
-  private notifyListeners() {
+  notifyListeners() { // made public so we can trigger it manually if needed
     this.listeners.forEach(l => l());
   }
 
@@ -67,6 +75,12 @@ class DataStore {
 
   getProducts(): Product[] {
     return this.products;
+  }
+
+  // ✅ ADDED: This helps App.tsx sync data without errors
+  setProducts(newProducts: Product[]) {
+    this.products = newProducts;
+    this.notifyListeners();
   }
 
   getVisibleProducts(): Product[] {
@@ -138,7 +152,7 @@ class DataStore {
         customerAddress: o.customer_address,
         productName: o.product_name,
         productPrice: o.product_price,
-        productImage: '', // We might need to join this or store it, leaving blank for now
+        productImage: '', 
         quantity: o.quantity,
         status: o.status,
         size: o.size,
@@ -174,7 +188,6 @@ class DataStore {
     const { error } = await supabase.from('orders').insert([dbOrder]);
 
     if (!error) {
-      // Refresh orders from DB to ensure clean state
       await this.fetchOrders();
       await this.updateStats('total_orders', 1);
       this.notifyListeners();
@@ -207,7 +220,7 @@ class DataStore {
       this.subscribers = data.map(s => ({
         id: s.id,
         email: s.email,
-        subscribedAt: s.subscribed_at || new Date().toISOString() // Handle fallback
+        subscribedAt: s.subscribed_at || new Date().toISOString()
       }));
     }
   }
@@ -225,17 +238,14 @@ class DataStore {
         totalOrders: data.total_orders,
         totalProducts: data.total_products,
         totalSubscribers: data.total_subscribers,
-        // Calculate these dynamically from the arrays for now
         ordersByStatus: this.calculateOrderStatus(),
-        visitsByDate: [], // Requires separate table implementation
-        ordersByDate: []  // Requires separate logic
+        visitsByDate: [],
+        ordersByDate: []
       };
     }
   }
 
   private async updateStats(field: string, increment: number) {
-    // Using RPC is better, but simple update works for low traffic
-    // Note: In production, create a Postgres function 'increment_stat'
     const { data } = await supabase.from('site_stats').select(field).single();
     if (data) {
       const newValue = (data as any)[field] + increment;
@@ -243,16 +253,19 @@ class DataStore {
     }
   }
 
+  recordVisit() {
+    // Basic visit recording
+    this.updateStats('total_visits', 1);
+  }
+
   getStats(): SiteStats {
     if (!this.stats) {
-       // Return empty default while loading
        return {
          totalVisits: 0, totalOrders: 0, totalProducts: 0, totalSubscribers: 0,
          ordersByStatus: { pending: 0, confirmed: 0, shipped: 0, delivered: 0, cancelled: 0 },
          visitsByDate: [], ordersByDate: []
        };
     }
-    // Ensure dynamic stats are fresh
     return {
       ...this.stats,
       ordersByStatus: this.calculateOrderStatus(),
