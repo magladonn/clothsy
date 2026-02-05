@@ -1,7 +1,14 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Product, Order, Subscriber, SiteStats, AdminUser } from '@/types';
 
-// ✅ 1. ADDED: This was causing the build error
+// ✅ 1. ADDED: EmailJS Configuration (Required for Contact Page)
+export const EMAILJS_CONFIG = {
+  SERVICE_ID: 'service_clothsy',   // Replace with your real EmailJS Service ID
+  TEMPLATE_ID: 'template_contact', // Replace with your real EmailJS Template ID
+  PUBLIC_KEY: 'user_public_key'    // Replace with your real EmailJS Public Key
+};
+
+// ✅ 2. MOROCCAN CITIES (Required for Checkout)
 export const MOROCCAN_CITIES = [
   "Casablanca", "Rabat", "Marrakech", "Fes", "Tangier",
   "Agadir", "Meknes", "Oujda", "Kenitra", "Tetouan",
@@ -56,7 +63,7 @@ class DataStore {
     };
   }
 
-  notifyListeners() { // made public so we can trigger it manually if needed
+  notifyListeners() {
     this.listeners.forEach(l => l());
   }
 
@@ -64,7 +71,6 @@ class DataStore {
   async fetchProducts() {
     const { data } = await supabase.from('products').select('*').order('created_at', { ascending: false });
     if (data) {
-      // Map database snake_case to frontend camelCase
       this.products = data.map(p => ({
         ...p,
         createdAt: p.created_at,
@@ -77,7 +83,6 @@ class DataStore {
     return this.products;
   }
 
-  // ✅ ADDED: This helps App.tsx sync data without errors
   setProducts(newProducts: Product[]) {
     this.products = newProducts;
     this.notifyListeners();
@@ -88,7 +93,6 @@ class DataStore {
   }
 
   async addProduct(product: Omit<Product, 'id' | 'createdAt'>) {
-    // Convert to database format
     const dbProduct = {
       code: product.code,
       name: product.name,
@@ -110,7 +114,6 @@ class DataStore {
     }
 
     if (data) {
-      // Add to local state immediately
       const newProduct = { ...data, createdAt: data.created_at, inStock: data.in_stock };
       this.products.unshift(newProduct);
       this.notifyListeners();
@@ -254,7 +257,6 @@ class DataStore {
   }
 
   recordVisit() {
-    // Basic visit recording
     this.updateStats('total_visits', 1);
   }
 
