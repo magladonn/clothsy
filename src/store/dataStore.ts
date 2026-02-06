@@ -1,14 +1,14 @@
 import { createClient } from '@supabase/supabase-js';
-import type { Product, Order, Subscriber, SiteStats, AdminUser } from '@/types';
+import type { Product, Order, Subscriber, SiteStats } from '@/types';
 
-// ✅ 1. UPDATED: Real EmailJS Configuration
+// ✅ 1. EmailJS Configuration
 export const EMAILJS_CONFIG = {
   SERVICE_ID: 'service_gn8ecp6',
   TEMPLATE_ID: 'template_ft3yuor',
   PUBLIC_KEY: 'HyBzOZ_aiLwpVDlq0'
 };
 
-// ✅ 2. MOROCCAN CITIES (Required for Checkout)
+// ✅ 2. MOROCCAN CITIES
 export const MOROCCAN_CITIES = [
   "Casablanca", "Rabat", "Marrakech", "Fes", "Tangier",
   "Agadir", "Meknes", "Oujda", "Kenitra", "Tetouan",
@@ -17,12 +17,7 @@ export const MOROCCAN_CITIES = [
   "Laayoune", "Dakhla", "Errachidia"
 ];
 
-// Admin credentials
-export const ADMIN_USERS: AdminUser[] = [
-  { username: 'admin1', password: 'clothsy2025' },
-  { username: 'admin2', password: 'clothsy2025' },
-  { username: 'admin3', password: 'clothsy2025' }
-];
+// ❌ DELETED: ADMIN_USERS (This removes the public password risk)
 
 // Supabase Configuration
 const SUPABASE_URL = 'https://fdgvhmgxyxdnxwhvmrhk.supabase.co';
@@ -44,7 +39,6 @@ class DataStore {
     this.init();
   }
 
-  // Initialize and fetch all data
   async init() {
     await Promise.all([
       this.fetchProducts(),
@@ -55,7 +49,6 @@ class DataStore {
     this.notifyListeners();
   }
 
-  // --- Real-time Subscription System ---
   subscribe(listener: () => void) {
     this.listeners.push(listener);
     return () => {
@@ -79,10 +72,8 @@ class DataStore {
     }
   }
 
-  getProducts(): Product[] {
-    return this.products;
-  }
-
+  getProducts(): Product[] { return this.products; }
+  
   setProducts(newProducts: Product[]) {
     this.products = newProducts;
     this.notifyListeners();
@@ -165,9 +156,7 @@ class DataStore {
     }
   }
 
-  getOrders(): Order[] {
-    return this.orders;
-  }
+  getOrders(): Order[] { return this.orders; }
 
   async addOrder(order: any) {
     const newId = `ORD-${Date.now().toString().slice(-6)}`;
@@ -228,9 +217,7 @@ class DataStore {
     }
   }
 
-  getSubscribers() {
-    return this.subscribers;
-  }
+  getSubscribers() { return this.subscribers; }
 
   // --- Stats ---
   async fetchStats() {
@@ -256,9 +243,7 @@ class DataStore {
     }
   }
 
-  recordVisit() {
-    this.updateStats('total_visits', 1);
-  }
+  recordVisit() { this.updateStats('total_visits', 1); }
 
   getStats(): SiteStats {
     if (!this.stats) {
