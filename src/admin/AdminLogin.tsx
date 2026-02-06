@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Lock, User, Eye, EyeOff } from 'lucide-react';
-import { dataStore } from '@/store/dataStore';
-import type { View } from '@/types';
+import { supabase } from '@/store/dataStore';
+import { View } from '@/types';
+import { Lock, Mail, AlertCircle, Loader2, Eye, EyeOff } from 'lucide-react';
 
 interface AdminLoginProps {
   setView: (view: View) => void;
@@ -9,29 +9,38 @@ interface AdminLoginProps {
 }
 
 export function AdminLogin({ setView, setIsAdmin }: AdminLoginProps) {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
-    // Simulate network delay
-    setTimeout(() => {
-      const isValid = dataStore.authenticateAdmin(username, password);
-      
-      if (isValid) {
+    try {
+      // 🔐 SECURE: Check directly with Supabase
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: password,
+      });
+
+      if (authError) {
+        console.error('Login failed:', authError.message);
+        setError('Invalid email or password.');
+      } else if (data.user) {
+        console.log('Login successful:', data.user.email);
         setIsAdmin(true);
         setView('admin');
-      } else {
-        setError('Invalid username or password');
       }
+    } catch (err) {
+      setError('An unexpected error occurred.');
+      console.error(err);
+    } finally {
       setLoading(false);
-    }, 500);
+    }
   };
 
   return (
@@ -44,26 +53,27 @@ export function AdminLogin({ setView, setIsAdmin }: AdminLoginProps) {
         </div>
 
         {/* Login Form */}
-        <div className="bg-white p-8 shadow-lg">
-          <h2 className="text-xl font-bold mb-6 text-center">Admin Login</h2>
+        <div className="bg-white p-8 shadow-lg rounded-lg">
+          <h2 className="text-xl font-bold mb-6 text-center">Admin Access</h2>
 
           {error && (
-            <div className="bg-red-50 text-red-600 p-3 mb-4 text-sm">
+            <div className="bg-red-50 flex items-center text-red-600 p-3 mb-4 text-sm rounded">
+              <AlertCircle size={16} className="mr-2" />
               {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-2">Username</label>
+              <label className="block text-sm font-medium mb-2">Email</label>
               <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Enter username"
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 focus:outline-none focus:border-black transition-colors"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="admin@clothsy.ma"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 focus:outline-none focus:border-black transition-colors rounded"
                   required
                 />
               </div>
@@ -78,7 +88,7 @@ export function AdminLogin({ setView, setIsAdmin }: AdminLoginProps) {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter password"
-                  className="w-full pl-10 pr-12 py-3 border border-gray-300 focus:outline-none focus:border-black transition-colors"
+                  className="w-full pl-10 pr-12 py-3 border border-gray-300 focus:outline-none focus:border-black transition-colors rounded"
                   required
                 />
                 <button
@@ -94,31 +104,27 @@ export function AdminLogin({ setView, setIsAdmin }: AdminLoginProps) {
             <button
               type="submit"
               disabled={loading}
-              className="btn-primary w-full flex items-center justify-center gap-2"
+              className="w-full bg-black text-white py-3 font-medium hover:bg-gray-800 transition-colors rounded flex items-center justify-center"
             >
               {loading ? (
-                <span className="animate-spin">⟳</span>
+                <>
+                  <Loader2 className="animate-spin -ml-1 mr-2 h-4 w-4" />
+                  Verifying...
+                </>
               ) : (
-                <Lock className="w-4 h-4" />
+                'Sign In'
               )}
-              {loading ? 'Logging in...' : 'Login'}
             </button>
           </form>
 
           <div className="mt-6 text-center">
-            <button
+            <button 
               onClick={() => setView('home')}
               className="text-sm text-gray-500 hover:text-black transition-colors"
             >
               ← Back to Store
             </button>
           </div>
-        </div>
-
-        {/* Credentials Hint */}
-        <div className="mt-6 text-center text-xs text-gray-400">
-          <p>Admin accounts: admin1, admin2, admin3</p>
-          <p>Password: clothsy2025</p>
         </div>
       </div>
     </div>
