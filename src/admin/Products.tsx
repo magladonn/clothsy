@@ -49,22 +49,19 @@ export function AdminProducts() {
     setIsSubmitting(true);
 
     try {
-      // Prepare the object for Supabase
-      // We fill in missing fields with defaults since your simple form doesn't have them yet
       await dataStore.addProduct({
         name: formData.name,
         price: Number(formData.price),
         category: formData.category,
-        code: formData.code || `CL-${Math.floor(Math.random() * 10000)}`, // Auto-generate if empty
+        code: formData.code || `CL-${Math.floor(Math.random() * 10000)}`,
         images: formData.image ? [formData.image] : [],
         description: formData.description || 'No description provided.',
-        sizes: ['S', 'M', 'L', 'XL'], // Default sizes
-        colors: ['Standard'],          // Default color
+        sizes: ['S', 'M', 'L', 'XL'],
+        colors: ['Standard'],
         inStock: true,
         visible: true
       });
 
-      // Reset and close
       setIsModalOpen(false);
       setFormData({ name: '', price: '', category: 'men', image: '', code: '', description: '' });
     } catch (error) {
@@ -90,7 +87,7 @@ export function AdminProducts() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {products.map((product) => (
-          <div key={product.id} className={`bg-white border border-gray-200 group relative ${!product.visible ? 'opacity-60' : ''}`}>
+          <div key={product.id} className={`bg-white border border-gray-200 group relative ${!product.visible ? 'opacity-75' : ''}`}>
             {/* Image Area */}
             <div className="aspect-[3/4] overflow-hidden bg-gray-100 relative">
               <img 
@@ -99,26 +96,27 @@ export function AdminProducts() {
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               />
               
-              {/* Overlay Actions */}
-              <div className="absolute top-2 right-2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              {/* ✅ FIX HERE: Added z-20 to make sure buttons are ABOVE the hidden overlay */}
+              <div className="absolute top-2 right-2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-20">
                 <button 
                   onClick={() => handleToggleVisibility(product.id)}
-                  className="p-2 bg-white text-gray-600 hover:text-black shadow-sm rounded-full"
+                  className="p-2 bg-white text-gray-600 hover:text-black shadow-sm rounded-full cursor-pointer"
                   title={product.visible ? "Hide Product" : "Show Product"}
                 >
                   {product.visible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                 </button>
                 <button 
                   onClick={() => handleDelete(product.id)}
-                  className="p-2 bg-white text-red-600 hover:text-red-700 shadow-sm rounded-full"
+                  className="p-2 bg-white text-red-600 hover:text-red-700 shadow-sm rounded-full cursor-pointer"
                   title="Delete"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
 
+              {/* Hidden Overlay */}
               {!product.visible && (
-                <div className="absolute inset-0 bg-white/50 flex items-center justify-center">
+                <div className="absolute inset-0 bg-white/50 flex items-center justify-center pointer-events-none">
                   <span className="bg-black text-white text-xs px-2 py-1 font-bold uppercase">Hidden</span>
                 </div>
               )}
@@ -146,7 +144,7 @@ export function AdminProducts() {
       {/* Add Product Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white w-full max-w-md p-6 max-h-[90vh] overflow-y-auto rounded-lg">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-bold">Add New Product</h2>
               <button onClick={() => setIsModalOpen(false)}>
@@ -162,7 +160,7 @@ export function AdminProducts() {
                   type="text"
                   value={formData.name}
                   onChange={e => setFormData({...formData, name: e.target.value})}
-                  className="w-full p-2 border border-gray-300 focus:border-black outline-none"
+                  className="w-full p-2 border border-gray-300 focus:border-black outline-none rounded"
                   placeholder="e.g. Classic White Tee"
                 />
               </div>
@@ -175,7 +173,7 @@ export function AdminProducts() {
                     type="number"
                     value={formData.price}
                     onChange={e => setFormData({...formData, price: e.target.value})}
-                    className="w-full p-2 border border-gray-300 focus:border-black outline-none"
+                    className="w-full p-2 border border-gray-300 focus:border-black outline-none rounded"
                     placeholder="0.00"
                   />
                 </div>
@@ -184,7 +182,7 @@ export function AdminProducts() {
                   <select
                     value={formData.category}
                     onChange={e => setFormData({...formData, category: e.target.value})}
-                    className="w-full p-2 border border-gray-300 focus:border-black outline-none"
+                    className="w-full p-2 border border-gray-300 focus:border-black outline-none rounded"
                   >
                     <option value="men">Men</option>
                     <option value="women">Women</option>
@@ -200,7 +198,7 @@ export function AdminProducts() {
                   type="text"
                   value={formData.code}
                   onChange={e => setFormData({...formData, code: e.target.value})}
-                  className="w-full p-2 border border-gray-300 focus:border-black outline-none"
+                  className="w-full p-2 border border-gray-300 focus:border-black outline-none rounded"
                   placeholder="Leave empty to auto-generate"
                 />
               </div>
@@ -210,7 +208,7 @@ export function AdminProducts() {
                 <textarea
                   value={formData.description}
                   onChange={e => setFormData({...formData, description: e.target.value})}
-                  className="w-full p-2 border border-gray-300 focus:border-black outline-none"
+                  className="w-full p-2 border border-gray-300 focus:border-black outline-none rounded"
                   placeholder="Short description..."
                   rows={2}
                 />
@@ -224,7 +222,7 @@ export function AdminProducts() {
                     value={formData.image}
                     onChange={e => setFormData({...formData, image: e.target.value})}
                     placeholder="https://..."
-                    className="w-full p-2 border border-gray-300 focus:border-black outline-none"
+                    className="w-full p-2 border border-gray-300 focus:border-black outline-none rounded"
                   />
                   {formData.image && (
                     <div className="aspect-square w-20 bg-gray-100 border rounded overflow-hidden">
@@ -237,7 +235,7 @@ export function AdminProducts() {
               <button 
                 type="submit" 
                 disabled={isSubmitting}
-                className="btn-primary w-full mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-black text-white py-3 font-medium hover:bg-gray-800 transition-colors rounded disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSubmitting ? 'Saving...' : 'Save Product'}
               </button>
