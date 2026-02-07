@@ -21,8 +21,8 @@ export function formatPrice(price: number): string {
   return `${price} MAD`;
 }
 
-// ✅ NEW: Helper function to send data to Google Sheets
-// This runs in the background so it doesn't slow down the user
+// ✅ UPDATED: Helper function to send data to Google Sheets
+// REMOVED HEADERS to fix the "Network Error" / CORS block
 async function sendToGoogleSheets(order: any, orderId: string) {
   try {
     const sheetData = {
@@ -38,12 +38,10 @@ async function sendToGoogleSheets(order: any, orderId: string) {
       totalPrice: order.productPrice * order.quantity
     };
 
+    // ⚠️ IMPORTANT: 'no-cors' mode + NO headers is required for Google Scripts
     await fetch(GOOGLE_SCRIPT_URL, {
       method: 'POST',
-      mode: 'no-cors', // standard for Google Scripts
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      mode: 'no-cors', 
       body: JSON.stringify(sheetData)
     });
     console.log("✅ Order sent to Google Sheets & WhatsApp System");
@@ -214,8 +212,6 @@ class DataStore {
       await this.updateStats('total_orders', 1);
       
       // 3. ✅ Trigger Google Sheets + WhatsApp Email (Non-blocking)
-      // We pass the original 'order' object because it might have the email, 
-      // plus the new 'newId'
       sendToGoogleSheets(order, newId);
 
       this.notifyListeners();
