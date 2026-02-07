@@ -1,14 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Product, Order, Subscriber, SiteStats } from '@/types';
 
-// ✅ 1. EmailJS Configuration
+// EmailJS Configuration
 export const EMAILJS_CONFIG = {
   SERVICE_ID: 'service_gn8ecp6',
   TEMPLATE_ID: 'template_ft3yuor',
   PUBLIC_KEY: 'HyBzOZ_aiLwpVDlq0'
 };
 
-// ✅ 2. MOROCCAN CITIES
 export const MOROCCAN_CITIES = [
   "Casablanca", "Rabat", "Marrakech", "Fes", "Tangier",
   "Agadir", "Meknes", "Oujda", "Kenitra", "Tetouan",
@@ -16,8 +15,6 @@ export const MOROCCAN_CITIES = [
   "Nador", "Taza", "Settat", "Berrechid", "Khemisset",
   "Laayoune", "Dakhla", "Errachidia"
 ];
-
-// ❌ DELETED: ADMIN_USERS (This removes the public password risk)
 
 // Supabase Configuration
 const SUPABASE_URL = 'https://fdgvhmgxyxdnxwhvmrhk.supabase.co';
@@ -40,8 +37,9 @@ class DataStore {
   }
 
   async init() {
+    // Load products first so we can link images to orders later
+    await this.fetchProducts(); 
     await Promise.all([
-      this.fetchProducts(),
       this.fetchOrders(),
       this.fetchSubscribers(),
       this.fetchStats()
@@ -67,18 +65,16 @@ class DataStore {
       this.products = data.map(p => ({
         ...p,
         createdAt: p.created_at,
-        inStock: p.in_stock
+        inStock: p.in_stock,
+        // 🔧 FIX 1: Ensure category is always lowercase for consistency
+        category: p.category ? p.category.toLowerCase() : 'men'
       }));
     }
   }
 
   getProducts(): Product[] { return this.products; }
   
-  setProducts(newProducts: Product[]) {
-    this.products = newProducts;
-    this.notifyListeners();
-  }
-
+  // Used by the Storefront (User Side)
   getVisibleProducts(): Product[] {
     return this.products.filter(p => p.visible);
   }
@@ -92,7 +88,8 @@ class DataStore {
       sizes: product.sizes,
       colors: product.colors,
       images: product.images,
-      category: product.category,
+      // 🔧 FIX 2: Force lowercase category when saving
+      category: product.category.toLowerCase(), 
       in_stock: product.inStock,
       visible: product.visible
     };
@@ -137,22 +134,29 @@ class DataStore {
   async fetchOrders() {
     const { data } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
     if (data) {
-      this.orders = data.map(o => ({
-        id: o.id,
-        createdAt: o.created_at,
-        customerName: o.customer_name,
-        customerPhone: o.customer_phone,
-        customerCity: o.customer_city,
-        customerAddress: o.customer_address,
-        productName: o.product_name,
-        productPrice: o.product_price,
-        productImage: '', 
-        quantity: o.quantity,
-        status: o.status,
-        size: o.size,
-        color: o.color,
-        notes: o.notes
-      }));
+      this.orders = data.map(o => {
+        // 🔧 FIX 3: Find the image from the product list using product_id or name
+        const relatedProduct = this.products.find(p => p.id === o.product_id || p.name === o.product_name);
+        const image = relatedProduct && relatedProduct.images.length > 0 ? relatedProduct.images[0] : '';
+
+        return {
+          id: o.id,
+          createdAt: o.created_at,
+          customerName: o.customer_name,
+          customerPhone: o.customer_phone,
+          customerCity: o.customer_city,
+          customerAddress: o.customer_address,
+          productName: o.product_name,
+          productPrice: o.product_price,
+          productImage: image, // ✅ Now the image will show in Admin
+          productCode: relatedProduct?.code, // ✅ Added Product Code if available
+          quantity: o.quantity,
+          status: o.status,
+          size: o.size,
+          color: o.color,
+          notes: o.notes
+        };
+      });
     }
   }
 
@@ -216,8 +220,8 @@ class DataStore {
       }));
     }
   }
-
-  getSubscribers() { return this.subscribers; }
+  
+  getSubscribers() { return this.subscribers; } // Added getter
 
   // --- Stats ---
   async fetchStats() {
@@ -236,8 +240,11 @@ class DataStore {
   }
 
   private async updateStats(field: string, increment: number) {
-    const { data } = await supabase.from('site_stats').select(field).single();
-    if (data) {
+    // Check if stats row exists, if not create it (Safety check)
+    const { data, error } = await supabase.from('site_stats').select(field).single();
+    if (error || !data) {
+       // Optional: Initialize stats if missing
+    } else {
       const newValue = (data as any)[field] + increment;
       await supabase.from('site_stats').update({ [field]: newValue }).eq('id', 1);
     }
@@ -265,18 +272,20 @@ class DataStore {
   private calculateOrderStatus() {
     const counts = { pending: 0, confirmed: 0, shipped: 0, delivered: 0, cancelled: 0 };
     this.orders.forEach(o => {
+      // Safety check for invalid statuses in DB
       if (counts[o.status] !== undefined) counts[o.status]++;
     });
     return counts;
   }
 
   exportOrdersToCSV(): string {
-    const headers = ['Order ID,Date,Customer,Phone,City,Items,Total,Status'];
+    const headers = ['Order ID,Date,Customer,Phone,City,Product,Items,Total,Status'];
     const rows = this.orders.map(o => {
       const total = o.productPrice * o.quantity;
-      return `${o.id},${new Date(o.createdAt).toLocaleDateString()},${o.customerName},${o.customerPhone},${o.customerCity},${o.quantity},${total},${o.status}`;
+      // Added Product Name to CSV
+      return `${o.id},${new Date(o.createdAt).toLocaleDateString()},${o.customerName},${o.customerPhone},${o.customerCity},"${o.productName}",${o.quantity},${total},${o.status}`;
     });
-    return [...headers, ...rows].join('\n');
+    return [headers, ...rows].join('\n');
   }
 }
 
