@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { ArrowLeft, Check, Box, Image as ImageIcon, ZoomIn } from 'lucide-react';
-import emailjs from '@emailjs/browser';
+// ❌ REMOVED: import emailjs from '@emailjs/browser';
 import { dataStore, MOROCCAN_CITIES, formatPrice } from '@/store/dataStore';
 import type { View, Product } from '@/types';
 
@@ -29,7 +29,6 @@ function ZoomableImage({ src, alt }: { src: string; alt: string }) {
 
   const handleLeave = () => {
     setZoom(false);
-    // Optional: Reset position slowly or snap back
   };
 
   return (
@@ -37,7 +36,7 @@ function ZoomableImage({ src, alt }: { src: string; alt: string }) {
       className="w-full h-full overflow-hidden relative cursor-crosshair bg-gray-100 group"
       onMouseMove={handleMouseMove}
       onMouseLeave={handleLeave}
-      onTouchStart={handleMouseMove} // Enable tap/touch for mobile
+      onTouchStart={handleMouseMove}
       onTouchMove={handleMouseMove}
       onTouchEnd={handleLeave}
     >
@@ -60,7 +59,7 @@ function ZoomableImage({ src, alt }: { src: string; alt: string }) {
   );
 }
 
-// --- 2. MODEL VIEWER (Unchanged) ---
+// --- 2. MODEL VIEWER ---
 function ModelViewer({ src, alt }: { src: string; alt: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -117,7 +116,6 @@ export function ProductDetail({ setView, product, setCartCount, setLastOrderId }
     notes: ''
   });
 
-  // Reset active image when product changes
   useEffect(() => {
     setActiveImage(product.images[0]);
     setSelectedColor(product.colors && product.colors.length > 0 ? product.colors[0] : '');
@@ -141,6 +139,7 @@ export function ProductDetail({ setView, product, setCartCount, setLastOrderId }
     setIsSubmitting(true);
 
     try {
+      // ✅ 1. Send Order to DataStore (Google Sheets / Supabase)
       const newOrder = await dataStore.addOrder({
         productId: product.id,
         productCode: product.code,
@@ -158,32 +157,12 @@ export function ProductDetail({ setView, product, setCartCount, setLastOrderId }
         notes: customerData.notes || ''
       });
 
+      // ✅ 2. Store Order ID for Confirmation Page
       setLastOrderId(newOrder.id);
 
-      emailjs.send(
-        "service_gn8ecp6", 
-        "template_ft3yuor", 
-        {
-          order_id: newOrder.id,
-          to_name: "Magladonn",
-          customer_name: customerData.customerName,
-          customer_phone: customerData.customerPhone,
-          customer_city: customerData.customerCity,
-          customer_address: customerData.customerAddress,
-          product_name: product.name,
-          size: selectedSize,
-          color: selectedColor,
-          quantity: quantity,
-          total_price: product.price * quantity,
-          notes: customerData.notes || "No notes"
-        },
-        "HyBzOZ_aiLwpVDlq0" 
-      ).then(() => {
-        console.log("Email sent successfully");
-      }).catch((err) => {
-        console.error("Email failed", err);
-      });
+      // ❌ REMOVED: EmailJS Block completely.
 
+      // ✅ 3. Show Success & Redirect
       setOrderSubmitted(true);
       setCartCount((prev: number) => prev + 1);
       
@@ -381,7 +360,6 @@ export function ProductDetail({ setView, product, setCartCount, setLastOrderId }
                   alt={`${product.name} 3D Model`} 
                 />
               ) : (
-                /* ✅ REPLACED STANDARD IMG WITH ZOOMABLE COMPONENT */
                 <ZoomableImage 
                   src={activeImage || product.images[0]}
                   alt={product.name}
