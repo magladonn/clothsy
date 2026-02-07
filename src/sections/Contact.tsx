@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Mail, MapPin, Phone, Send, Check, Loader2 } from 'lucide-react';
 import { dataStore } from '@/store/dataStore'; // ✅ Fixed Import
 
-export default function Contact() {
+export function Contact() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [formData, setFormData] = useState({
