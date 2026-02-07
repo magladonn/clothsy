@@ -1,12 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Product, Order, Subscriber, SiteStats } from '@/types';
 
-// EmailJS Configuration
-export const EMAILJS_CONFIG = {
-  SERVICE_ID: 'service_gn8ecp6',
-  TEMPLATE_ID: 'template_ft3yuor',
-  PUBLIC_KEY: 'HyBzOZ_aiLwpVDlq0'
-};
+// ✅ NEW: Google Sheets API Configuration
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzb-b4WLujj9B8LMbeGD6CKv84OF6ULeeyrIKZFB79S59-fxF7-kfWMC8JtIEr0xPnOOQ/exec';
 
 export const MOROCCAN_CITIES = [
   "Casablanca", "Rabat", "Marrakech", "Fes", "Tangier",
@@ -23,6 +19,37 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 export function formatPrice(price: number): string {
   return `${price} MAD`;
+}
+
+// ✅ NEW: Helper function to send data to Google Sheets
+// This runs in the background so it doesn't slow down the user
+async function sendToGoogleSheets(order: any, orderId: string) {
+  try {
+    const sheetData = {
+      orderId: orderId,
+      customerName: order.customerName,
+      customerPhone: order.customerPhone,
+      customerCity: order.customerCity,
+      customerAddress: order.customerAddress,
+      customerEmail: order.email || order.customerEmail, // Catches email if provided
+      productName: order.productName,
+      variant: `${order.size} / ${order.color}`,
+      quantity: order.quantity,
+      totalPrice: order.productPrice * order.quantity
+    };
+
+    await fetch(GOOGLE_SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors', // standard for Google Scripts
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(sheetData)
+    });
+    console.log("✅ Order sent to Google Sheets & WhatsApp System");
+  } catch (error) {
+    console.error("❌ Google Sheets Error:", error);
+  }
 }
 
 class DataStore {
@@ -66,15 +93,13 @@ class DataStore {
         ...p,
         createdAt: p.created_at,
         inStock: p.in_stock,
-        // 🔧 FIX 1: Ensure category is always lowercase for consistency
         category: p.category ? p.category.toLowerCase() : 'men'
       }));
     }
   }
 
   getProducts(): Product[] { return this.products; }
-  
-  // Used by the Storefront (User Side)
+   
   getVisibleProducts(): Product[] {
     return this.products.filter(p => p.visible);
   }
@@ -88,7 +113,6 @@ class DataStore {
       sizes: product.sizes,
       colors: product.colors,
       images: product.images,
-      // 🔧 FIX 2: Force lowercase category when saving
       category: product.category.toLowerCase(), 
       in_stock: product.inStock,
       visible: product.visible
@@ -135,7 +159,6 @@ class DataStore {
     const { data } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
     if (data) {
       this.orders = data.map(o => {
-        // 🔧 FIX 3: Find the image from the product list using product_id or name
         const relatedProduct = this.products.find(p => p.id === o.product_id || p.name === o.product_name);
         const image = relatedProduct && relatedProduct.images.length > 0 ? relatedProduct.images[0] : '';
 
@@ -148,8 +171,8 @@ class DataStore {
           customerAddress: o.customer_address,
           productName: o.product_name,
           productPrice: o.product_price,
-          productImage: image, // ✅ Now the image will show in Admin
-          productCode: relatedProduct?.code, // ✅ Added Product Code if available
+          productImage: image,
+          productCode: relatedProduct?.code,
           quantity: o.quantity,
           status: o.status,
           size: o.size,
@@ -162,6 +185,7 @@ class DataStore {
 
   getOrders(): Order[] { return this.orders; }
 
+  // ✅ UPDATED: addOrder now sends to Supabase AND Google Sheets
   async addOrder(order: any) {
     const newId = `ORD-${Date.now().toString().slice(-6)}`;
     
@@ -181,11 +205,19 @@ class DataStore {
       notes: order.notes
     };
 
+    // 1. Save to Supabase (Admin Panel)
     const { error } = await supabase.from('orders').insert([dbOrder]);
 
     if (!error) {
+      // 2. Refresh local data
       await this.fetchOrders();
       await this.updateStats('total_orders', 1);
+      
+      // 3. ✅ Trigger Google Sheets + WhatsApp Email (Non-blocking)
+      // We pass the original 'order' object because it might have the email, 
+      // plus the new 'newId'
+      sendToGoogleSheets(order, newId);
+
       this.notifyListeners();
       return { id: newId };
     }
@@ -220,8 +252,8 @@ class DataStore {
       }));
     }
   }
-  
-  getSubscribers() { return this.subscribers; } // Added getter
+   
+  getSubscribers() { return this.subscribers; }
 
   // --- Stats ---
   async fetchStats() {
@@ -240,7 +272,6 @@ class DataStore {
   }
 
   private async updateStats(field: string, increment: number) {
-    // Check if stats row exists, if not create it (Safety check)
     const { data, error } = await supabase.from('site_stats').select(field).single();
     if (error || !data) {
        // Optional: Initialize stats if missing
@@ -272,7 +303,6 @@ class DataStore {
   private calculateOrderStatus() {
     const counts = { pending: 0, confirmed: 0, shipped: 0, delivered: 0, cancelled: 0 };
     this.orders.forEach(o => {
-      // Safety check for invalid statuses in DB
       if (counts[o.status] !== undefined) counts[o.status]++;
     });
     return counts;
@@ -282,7 +312,6 @@ class DataStore {
     const headers = ['Order ID,Date,Customer,Phone,City,Product,Items,Total,Status'];
     const rows = this.orders.map(o => {
       const total = o.productPrice * o.quantity;
-      // Added Product Name to CSV
       return `${o.id},${new Date(o.createdAt).toLocaleDateString()},${o.customerName},${o.customerPhone},${o.customerCity},"${o.productName}",${o.quantity},${total},${o.status}`;
     });
     return [headers, ...rows].join('\n');
