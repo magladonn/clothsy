@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Trash2, X, Eye, EyeOff } from 'lucide-react';
+import { Plus, Trash2, X, Eye, EyeOff, Search } from 'lucide-react';
 import { dataStore, formatPrice } from '@/store/dataStore';
 import type { Product } from '@/types';
 
@@ -7,6 +7,7 @@ export function AdminProducts() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [searchQuery, setSearchQuery] = useState(''); // ✅ New Search State
   
   // Form State
   const [formData, setFormData] = useState({
@@ -20,30 +21,24 @@ export function AdminProducts() {
 
   // 1. Subscribe to Real Data
   useEffect(() => {
-    // Initial fetch
     setProducts(dataStore.getProducts());
-
-    // Listen for updates
     const unsubscribe = dataStore.subscribe(() => {
       setProducts([...dataStore.getProducts()]);
     });
-
     return () => unsubscribe();
   }, []);
 
-  // 2. Async Delete
+  // 2. Handlers
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to permanently delete this product?')) {
       await dataStore.deleteProduct(id);
     }
   };
 
-  // 3. Toggle Visibility (Hide/Show)
   const handleToggleVisibility = async (id: string) => {
     await dataStore.toggleProductVisibility(id);
   };
 
-  // 4. Submit to Database
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -72,21 +67,46 @@ export function AdminProducts() {
     }
   };
 
+  // ✅ 3. Search Filter Logic
+  const filteredProducts = products.filter(product => {
+    const searchLower = searchQuery.toLowerCase();
+    return (
+      product.name.toLowerCase().includes(searchLower) ||
+      product.category.toLowerCase().includes(searchLower) ||
+      (product.code && product.code.toLowerCase().includes(searchLower))
+    );
+  });
+
   return (
     <div className="p-8">
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
         <h1 className="text-3xl font-bold">Products</h1>
-        <button 
-          onClick={() => setIsModalOpen(true)}
-          className="btn-primary flex items-center gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          Add Product
-        </button>
+        
+        <div className="flex gap-4 w-full md:w-auto">
+          {/* ✅ Search Input */}
+          <div className="relative flex-1 md:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input 
+              type="text" 
+              placeholder="Search products..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-black transition-colors"
+            />
+          </div>
+
+          <button 
+            onClick={() => setIsModalOpen(true)}
+            className="btn-primary flex items-center gap-2 whitespace-nowrap"
+          >
+            <Plus className="w-4 h-4" />
+            Add Product
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {products.map((product) => (
+        {filteredProducts.map((product) => (
           <div key={product.id} className={`bg-white border border-gray-200 group relative ${!product.visible ? 'opacity-75' : ''}`}>
             {/* Image Area */}
             <div className="aspect-[3/4] overflow-hidden bg-gray-100 relative">
@@ -96,7 +116,7 @@ export function AdminProducts() {
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               />
               
-              {/* ✅ FIX HERE: Added z-20 to make sure buttons are ABOVE the hidden overlay */}
+              {/* Actions Overlay */}
               <div className="absolute top-2 right-2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-20">
                 <button 
                   onClick={() => handleToggleVisibility(product.id)}
@@ -114,7 +134,6 @@ export function AdminProducts() {
                 </button>
               </div>
 
-              {/* Hidden Overlay */}
               {!product.visible && (
                 <div className="absolute inset-0 bg-white/50 flex items-center justify-center pointer-events-none">
                   <span className="bg-black text-white text-xs px-2 py-1 font-bold uppercase">Hidden</span>
@@ -129,15 +148,24 @@ export function AdminProducts() {
                 <span className="text-sm font-medium">{formatPrice(product.price)}</span>
               </div>
               <p className="text-sm text-gray-500 capitalize">{product.category}</p>
-              <p className="text-xs text-gray-400 mt-2">Code: {product.code}</p>
+              <div className="flex justify-between items-center mt-2">
+                <p className="text-xs text-gray-400">Code: {product.code}</p>
+                {product.inStock ? (
+                  <span className="text-xs text-green-600 font-medium">In Stock</span>
+                ) : (
+                  <span className="text-xs text-red-500 font-medium">Out of Stock</span>
+                )}
+              </div>
             </div>
           </div>
         ))}
       </div>
 
-      {products.length === 0 && (
+      {filteredProducts.length === 0 && (
         <div className="text-center py-20 text-gray-500">
-          No products found. Add one to get started!
+          {products.length === 0 
+            ? "No products found. Add one to get started!" 
+            : `No products match "${searchQuery}"`}
         </div>
       )}
 
