@@ -1,188 +1,182 @@
-import { useState, useRef, useEffect } from 'react';
-import gsap from 'gsap';
-import { Mail, MapPin, Phone, Send, Check } from 'lucide-react';
-import { dataStore, EMAILJS_CONFIG } from '@/store/dataStore';
-import emailjs from '@emailjs/browser';
+import React, { useState } from 'react';
+import { Mail, MapPin, Phone, Send, Check, Loader2 } from 'lucide-react';
+import { dataStore } from '@/store/dataStore'; // ✅ Fixed Import
 
-export function Contact() {
-  const [email, setEmail] = useState('');
-  const [subscribed, setSubscribed] = useState(false);
-  const [messageData, setMessageData] = useState({ name: '', email: '', message: '' });
-  const [messageSent, setMessageSent] = useState(false);
-  const contentRef = useRef<HTMLDivElement>(null);
+export default function Contact() {
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    message: ''
+  });
 
-  useEffect(() => {
-    gsap.fromTo(contentRef.current,
-      { y: 30, opacity: 0 },
-      { y: 0, opacity: 1, duration: 0.6, ease: 'expo.out' }
-    );
-  }, []);
-
-  const handleSubscribe = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (email) {
-      const result = dataStore.addSubscriber(email);
-      if (result) {
-        setSubscribed(true);
-        setEmail('');
-        setTimeout(() => setSubscribed(false), 3000);
-      } else {
-        alert('You are already subscribed!');
-      }
+    setLoading(true);
+
+    try {
+      // We send the contact message as a "General Inquiry" order
+      // This ensures it goes to Supabase AND your Google Sheet/Email
+      await dataStore.addOrder({
+        customerName: formData.name,
+        customerPhone: formData.phone || "No Phone",
+        customerEmail: formData.email, // Passing email for the auto-reply
+        customerCity: "Online Inquiry",
+        customerAddress: "N/A",
+        productName: "💬 Contact Message", // Special name to identify it in sheets
+        productPrice: 0,
+        quantity: 1,
+        size: "-",
+        color: "-",
+        notes: formData.message // The actual message goes here
+      });
+
+      setSuccess(true);
+      setFormData({ name: '', email: '', phone: '', message: '' });
+      
+      // Reset success message after 5 seconds
+      setTimeout(() => setSuccess(false), 5000);
+    } catch (error) {
+      console.error("Error sending message:", error);
+      alert("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleMessageSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Check if EmailJS is configured
-    if (EMAILJS_CONFIG.serviceId === 'YOUR_SERVICE_ID' || 
-        EMAILJS_CONFIG.templateId === 'YOUR_TEMPLATE_ID' || 
-        EMAILJS_CONFIG.publicKey === 'YOUR_PUBLIC_KEY') {
-      alert('⚠️ Please configure EmailJS first!\n\nSteps:\n1. Go to https://www.emailjs.com\n2. Create free account\n3. Update EMAILJS_CONFIG in dataStore.ts');
-      return;
-    }
-
-    try {
-      // Send email via EmailJS
-      await emailjs.send(
-        EMAILJS_CONFIG.serviceId,
-        EMAILJS_CONFIG.templateId,
-        {
-          from_name: messageData.name,
-          from_email: messageData.email,
-          message: messageData.message,
-          to_email: EMAILJS_CONFIG.email
-        },
-        EMAILJS_CONFIG.publicKey
-      );
-
-      setMessageSent(true);
-      setMessageData({ name: '', email: '', message: '' });
-      setTimeout(() => setMessageSent(false), 3000);
-    } catch (error) {
-      console.error('EmailJS error:', error);
-      alert('Failed to send message. Please try again or contact us directly at ' + EMAILJS_CONFIG.email);
-    }
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
   return (
-    <section ref={contentRef} className="pt-32 pb-16 px-8 md:px-16 lg:px-24 min-h-screen">
-      <div className="max-w-6xl mx-auto">
-        <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-4">CONTACT</h1>
-        <p className="text-gray-600 mb-12 max-w-xl">Get in touch with us for any inquiries, collaborations, or just to say hello.</p>
+    <section id="contact" className="py-20 bg-white">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-16">
+          <h2 className="text-4xl font-bold text-black mb-4 uppercase tracking-wider">Contact Us</h2>
+          <div className="w-24 h-1 bg-black mx-auto"></div>
+        </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           {/* Contact Info */}
-          <div>
-            <div className="space-y-8 mb-12">
-              <div className="flex items-start gap-4">
-                <Mail className="w-5 h-5 mt-1" />
+          <div className="bg-gray-50 p-10">
+            <h3 className="text-2xl font-bold mb-8 uppercase">Get in Touch</h3>
+            
+            <div className="space-y-8">
+              <div className="flex items-start space-x-4">
+                <div className="bg-black p-3 rounded-none">
+                  <Phone className="w-6 h-6 text-white" />
+                </div>
                 <div>
-                  <h3 className="font-medium mb-1">Email</h3>
-                  <a href="mailto:clothsy.business.ma@gmail.com" className="text-gray-600 hover:text-black transition-colors">
-                    clothsy.business.ma@gmail.com
-                  </a>
+                  <h4 className="font-bold text-lg mb-1">Phone / WhatsApp</h4>
+                  <p className="text-gray-600">+212 786-193181</p>
+                  <p className="text-sm text-gray-500 mt-1">Available 9am - 8pm</p>
                 </div>
               </div>
-              
-              <div className="flex items-start gap-4">
-                <Phone className="w-5 h-5 mt-1" />
-                <div>
-                  <h3 className="font-medium mb-1">Phone</h3>
-                  <a href="tel:+212786193181" className="text-gray-600 hover:text-black transition-colors">
-                    +212 786 193 181
-                  </a>
-                </div>
-              </div>
-              
-              <div className="flex items-start gap-4">
-                <MapPin className="w-5 h-5 mt-1" />
-                <div>
-                  <h3 className="font-medium mb-1">Location</h3>
-                  <p className="text-gray-600">Morocco</p>
-                </div>
-              </div>
-            </div>
 
-            {/* Newsletter */}
-            <div className="bg-gray-50 p-8">
-              <h3 className="font-bold mb-2">SUBSCRIBE TO THE DROP</h3>
-              <p className="text-sm text-gray-600 mb-4">Be the first to know about new releases and exclusive offers.</p>
-              
-              {subscribed ? (
-                <div className="flex items-center gap-2 text-green-600">
-                  <Check className="w-5 h-5" />
-                  <span className="font-medium">Thanks for subscribing!</span>
+              <div className="flex items-start space-x-4">
+                <div className="bg-black p-3 rounded-none">
+                  <Mail className="w-6 h-6 text-white" />
                 </div>
-              ) : (
-                <form onSubmit={handleSubscribe} className="flex gap-2">
-                  <input 
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Enter your email"
-                    className="flex-1"
-                  />
-                  <button type="submit" className="btn-primary px-4">
-                    <Send className="w-4 h-4" />
-                  </button>
-                </form>
-              )}
+                <div>
+                  <h4 className="font-bold text-lg mb-1">Email</h4>
+                  <p className="text-gray-600">contact@clothsy.ma</p>
+                </div>
+              </div>
+
+              <div className="flex items-start space-x-4">
+                <div className="bg-black p-3 rounded-none">
+                  <MapPin className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-lg mb-1">Location</h4>
+                  <p className="text-gray-600">Casablanca, Morocco</p>
+                  <p className="text-sm text-gray-500 mt-1">Shipping all over Morocco</p>
+                </div>
+              </div>
             </div>
           </div>
 
           {/* Contact Form */}
-          <div>
-            <h2 className="text-xl font-bold mb-6">SEND US A MESSAGE</h2>
-            
-            {messageSent ? (
-              <div className="bg-green-50 border border-green-200 p-8 text-center">
-                <Check className="w-12 h-12 text-green-600 mx-auto mb-4" />
-                <h3 className="text-xl font-bold text-green-800 mb-2">Message Sent!</h3>
-                <p className="text-green-700">We will get back to you soon.</p>
+          <div className="bg-white p-6 border border-gray-200">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2 uppercase">Name</label>
+                <input
+                  type="text"
+                  name="name"
+                  required
+                  value={formData.name}
+                  onChange={handleChange}
+                  className="w-full bg-gray-50 border border-gray-200 px-4 py-3 focus:outline-none focus:border-black transition-colors"
+                  placeholder="Your Name"
+                />
               </div>
-            ) : (
-              <form onSubmit={handleMessageSubmit} className="space-y-4">
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Name</label>
-                  <input 
-                    type="text"
-                    required
-                    value={messageData.name}
-                    onChange={(e) => setMessageData({...messageData, name: e.target.value})}
-                    placeholder="Your name"
+                  <label className="block text-sm font-bold text-gray-700 mb-2 uppercase">Phone</label>
+                  <input
+                    type="tel"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    className="w-full bg-gray-50 border border-gray-200 px-4 py-3 focus:outline-none focus:border-black transition-colors"
+                    placeholder="+212..."
                   />
                 </div>
-                
                 <div>
-                  <label className="block text-sm font-medium mb-2">Email</label>
-                  <input 
+                  <label className="block text-sm font-bold text-gray-700 mb-2 uppercase">Email</label>
+                  <input
                     type="email"
+                    name="email"
                     required
-                    value={messageData.email}
-                    onChange={(e) => setMessageData({...messageData, email: e.target.value})}
+                    value={formData.email}
+                    onChange={handleChange}
+                    className="w-full bg-gray-50 border border-gray-200 px-4 py-3 focus:outline-none focus:border-black transition-colors"
                     placeholder="your@email.com"
                   />
                 </div>
-                
-                <div>
-                  <label className="block text-sm font-medium mb-2">Message</label>
-                  <textarea 
-                    required
-                    rows={5}
-                    value={messageData.message}
-                    onChange={(e) => setMessageData({...messageData, message: e.target.value})}
-                    placeholder="Your message..."
-                  />
-                </div>
-                
-                <button type="submit" className="btn-primary w-full">
-                  SEND MESSAGE
-                </button>
-              </form>
-            )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2 uppercase">Message</label>
+                <textarea
+                  name="message"
+                  required
+                  rows={4}
+                  value={formData.message}
+                  onChange={handleChange}
+                  className="w-full bg-gray-50 border border-gray-200 px-4 py-3 focus:outline-none focus:border-black transition-colors"
+                  placeholder="How can we help you?"
+                ></textarea>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading || success}
+                className={`w-full py-4 px-6 flex items-center justify-center space-x-2 transition-all duration-300 ${
+                  success 
+                    ? 'bg-green-600 text-white' 
+                    : 'bg-black text-white hover:bg-gray-800'
+                }`}
+              >
+                {loading ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : success ? (
+                  <>
+                    <Check className="w-5 h-5" />
+                    <span>Message Sent!</span>
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-5 h-5" />
+                    <span>Send Message</span>
+                  </>
+                )}
+              </button>
+            </form>
           </div>
         </div>
       </div>
