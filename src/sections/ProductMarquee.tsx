@@ -10,14 +10,13 @@ interface ProductMarqueeProps {
 export function ProductMarquee({ products, setView, setSelectedProduct }: ProductMarqueeProps) {
   
   // Create a larger list of products for the infinite loop effect
-  // We repeat the list 4 times to ensure it fills wide screens comfortably
   const safeProducts = products || [];
   
-  // If no products are loaded yet, don't break the layout
   if (safeProducts.length === 0) {
     return null; 
   }
 
+  // We repeat the list 4 times to ensure it fills wide screens comfortably
   const marqueeProducts = [...safeProducts, ...safeProducts, ...safeProducts, ...safeProducts];
 
   const handleProductClick = (product: Product) => {
@@ -34,12 +33,10 @@ export function ProductMarquee({ products, setView, setSelectedProduct }: Produc
       <div className="flex w-full overflow-hidden">
         <div 
           className="flex gap-6 animate-marquee will-change-transform whitespace-nowrap"
-          // ⚡ SPEED CONTROL: Change '20s' to '10s' for faster, '30s' for slower
-          style={{ animationDuration: '20s' }} 
+          style={{ animationDuration: '30s' }} // Slower is usually better for reading prices
         >
           {marqueeProducts.map((product, index) => (
             <div 
-              // We use index in key because we have duplicate product IDs now
               key={`${product.id}-${index}`} 
               onClick={() => handleProductClick(product)}
               className="product-card flex-shrink-0 w-[280px] md:w-[320px] cursor-pointer group"
@@ -51,12 +48,18 @@ export function ProductMarquee({ products, setView, setSelectedProduct }: Produc
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />
               </div>
-              <div className="flex justify-between items-start">
-                <div>
+
+              {/* ✅ FIXED ALIGNMENT HERE */}
+              <div className="flex justify-between items-start gap-4">
+                <div className="flex-1 min-w-0"> {/* min-w-0 prevents text overflow issues */}
                   <p className="text-xs font-medium text-gray-500 mb-1">{product.code}</p>
-                  <h3 className="text-sm font-medium group-hover:underline uppercase">{product.name}</h3>
+                  <h3 className="text-sm font-medium group-hover:underline uppercase truncate pr-2">
+                    {product.name}
+                  </h3>
                 </div>
-                <p className="text-sm font-medium">{formatPrice(product.price)}</p>
+                <p className="text-sm font-medium whitespace-nowrap">
+                  {formatPrice(product.price)}
+                </p>
               </div>
             </div>
           ))}
