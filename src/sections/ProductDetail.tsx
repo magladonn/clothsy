@@ -1,11 +1,66 @@
 import { useState, useEffect, useRef } from 'react';
 import gsap from 'gsap';
-import { ArrowLeft, Check, Box, Image as ImageIcon } from 'lucide-react';
+import { ArrowLeft, Check, Box, Image as ImageIcon, ZoomIn } from 'lucide-react';
 import emailjs from '@emailjs/browser';
 import { dataStore, MOROCCAN_CITIES, formatPrice } from '@/store/dataStore';
 import type { View, Product } from '@/types';
 
-// ModelViewer component 
+// --- 1. NEW COMPONENT: ZOOMABLE IMAGE ---
+function ZoomableImage({ src, alt }: { src: string; alt: string }) {
+  const [zoom, setZoom] = useState(false);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const imageRef = useRef<HTMLImageElement>(null);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
+    if (!imageRef.current) return;
+
+    const { left, top, width, height } = imageRef.current.getBoundingClientRect();
+    
+    // Handle both mouse and touch events
+    const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
+
+    const x = ((clientX - left) / width) * 100;
+    const y = ((clientY - top) / height) * 100;
+
+    setPosition({ x, y });
+    setZoom(true);
+  };
+
+  const handleLeave = () => {
+    setZoom(false);
+    // Optional: Reset position slowly or snap back
+  };
+
+  return (
+    <div 
+      className="w-full h-full overflow-hidden relative cursor-crosshair bg-gray-100 group"
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleLeave}
+      onTouchStart={handleMouseMove} // Enable tap/touch for mobile
+      onTouchMove={handleMouseMove}
+      onTouchEnd={handleLeave}
+    >
+      <img
+        ref={imageRef}
+        src={src}
+        alt={alt}
+        style={{
+          transformOrigin: `${position.x}% ${position.y}%`,
+          transform: zoom ? 'scale(2.5)' : 'scale(1)',
+        }}
+        className="w-full h-full object-cover transition-transform duration-100 ease-out will-change-transform"
+      />
+      
+      {/* Hint Icon (Disappears when zoomed) */}
+      <div className={`absolute bottom-4 right-4 bg-white/80 backdrop-blur-sm p-2 rounded-full pointer-events-none transition-opacity duration-300 ${zoom ? 'opacity-0' : 'opacity-100'}`}>
+        <ZoomIn className="w-5 h-5 text-gray-700" />
+      </div>
+    </div>
+  );
+}
+
+// --- 2. MODEL VIEWER (Unchanged) ---
 function ModelViewer({ src, alt }: { src: string; alt: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -86,8 +141,6 @@ export function ProductDetail({ setView, product, setCartCount, setLastOrderId }
     setIsSubmitting(true);
 
     try {
-      // 1. Save to Database (Supabase)
-      // We use await here to ensure the ID is generated and saved first
       const newOrder = await dataStore.addOrder({
         productId: product.id,
         productCode: product.code,
@@ -105,10 +158,8 @@ export function ProductDetail({ setView, product, setCartCount, setLastOrderId }
         notes: customerData.notes || ''
       });
 
-      // 2. Set ID for confirmation page
       setLastOrderId(newOrder.id);
 
-      // 3. Send Email Notification (Non-blocking)
       emailjs.send(
         "service_gn8ecp6", 
         "template_ft3yuor", 
@@ -133,11 +184,9 @@ export function ProductDetail({ setView, product, setCartCount, setLastOrderId }
         console.error("Email failed", err);
       });
 
-      // 4. Update UI
       setOrderSubmitted(true);
       setCartCount((prev: number) => prev + 1);
       
-      // Redirect after delay
       setTimeout(() => {
         setView('confirmation');
       }, 2000);
@@ -332,10 +381,10 @@ export function ProductDetail({ setView, product, setCartCount, setLastOrderId }
                   alt={`${product.name} 3D Model`} 
                 />
               ) : (
-                <img 
-                  src={activeImage || product.images[0]} 
+                /* ✅ REPLACED STANDARD IMG WITH ZOOMABLE COMPONENT */
+                <ZoomableImage 
+                  src={activeImage || product.images[0]}
                   alt={product.name}
-                  className="w-full h-full object-cover transition-opacity duration-300"
                 />
               )}
             </div>
@@ -349,7 +398,7 @@ export function ProductDetail({ setView, product, setCartCount, setLastOrderId }
                   key={index}
                   onClick={() => {
                     setActiveImage(img);
-                    setShow3D(false); // Switch back to image view if in 3D
+                    setShow3D(false); 
                   }}
                   className={`aspect-[3/4] bg-gray-100 overflow-hidden border-2 transition-all ${
                     activeImage === img && !show3D
