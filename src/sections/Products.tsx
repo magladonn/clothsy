@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { dataStore, formatPrice } from '@/store/dataStore'; // Import dataStore
+import { dataStore, formatPrice } from '@/store/dataStore'; 
 import type { View, Product } from '@/types';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -19,14 +19,10 @@ export function Products({ setView, setSelectedProduct }: ProductsProps) {
 
   // 1. DATA FETCHING & SUBSCRIPTION
   useEffect(() => {
-    // Initial load
     setAllProducts(dataStore.getVisibleProducts());
-
-    // Subscribe to real-time updates from Supabase/Store
     const unsubscribe = dataStore.subscribe(() => {
       setAllProducts(dataStore.getVisibleProducts());
     });
-
     return () => unsubscribe();
   }, []);
 
@@ -115,7 +111,19 @@ export function Products({ setView, setSelectedProduct }: ProductsProps) {
             <div>
               <p className="text-xs font-medium text-gray-500 mb-1">{product.code}</p>
               <h3 className="text-sm font-medium group-hover:underline mb-1">{product.name}</h3>
-              <p className="text-sm font-medium">{formatPrice(product.price)}</p>
+              
+              {/* Stacked Price Display */}
+              <div className="flex flex-col mt-1">
+                {product.originalPrice && product.originalPrice > product.price ? (
+                  <>
+                    <span className="text-[11px] text-gray-400 line-through leading-none pb-[2px]">{formatPrice(product.originalPrice)}</span>
+                    <span className="text-sm font-bold leading-none">{formatPrice(product.price)}</span>
+                  </>
+                ) : (
+                  <span className="text-sm font-medium">{formatPrice(product.price)}</span>
+                )}
+              </div>
+
             </div>
           </div>
         ))}
