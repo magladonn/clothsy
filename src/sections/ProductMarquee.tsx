@@ -47,19 +47,34 @@ export function ProductMarquee({ products, setView, setSelectedProduct }: Produc
                   alt={product.name}
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />
+                {/* Sold Out Badge */}
+                {!product.inStock && (
+                  <div className="absolute top-2 right-2 bg-black text-white text-[10px] px-2 py-1 font-bold uppercase">
+                    Sold Out
+                  </div>
+                )}
               </div>
 
-              {/* ✅ FIXED ALIGNMENT HERE */}
               <div className="flex justify-between items-start gap-4">
-                <div className="flex-1 min-w-0"> {/* min-w-0 prevents text overflow issues */}
+                <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium text-gray-500 mb-1">{product.code}</p>
                   <h3 className="text-sm font-medium group-hover:underline uppercase truncate pr-2">
                     {product.name}
                   </h3>
                 </div>
-                <p className="text-sm font-medium whitespace-nowrap">
-                  {formatPrice(product.price)}
-                </p>
+                
+                {/* ✅ UPDATED STACKED PRICE HERE */}
+                <div className="flex flex-col items-end">
+                  {product.originalPrice && product.originalPrice > product.price ? (
+                    <>
+                      <span className="text-[11px] text-gray-400 line-through leading-none pb-[2px]">{formatPrice(product.originalPrice)}</span>
+                      <span className="text-sm font-bold leading-none whitespace-nowrap">{formatPrice(product.price)}</span>
+                    </>
+                  ) : (
+                    <span className="text-sm font-medium whitespace-nowrap">{formatPrice(product.price)}</span>
+                  )}
+                </div>
+
               </div>
             </div>
           ))}
