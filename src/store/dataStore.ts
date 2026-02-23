@@ -91,7 +91,8 @@ class DataStore {
         ...p,
         createdAt: p.created_at,
         inStock: p.in_stock,
-        category: p.category ? p.category.toLowerCase() : 'men'
+        category: p.category ? p.category.toLowerCase() : 'men',
+        originalPrice: p.original_price
       }));
     }
   }
@@ -108,6 +109,7 @@ class DataStore {
       name: product.name,
       description: product.description,
       price: product.price,
+      original_price: product.originalPrice,
       sizes: product.sizes,
       colors: product.colors,
       images: product.images,
@@ -124,7 +126,7 @@ class DataStore {
     }
 
     if (data) {
-      const newProduct = { ...data, createdAt: data.created_at, inStock: data.in_stock };
+      const newProduct = { ...data, createdAt: data.created_at, inStock: data.in_stock, originalPrice: data.original_price };
       this.products.unshift(newProduct);
       this.notifyListeners();
       return newProduct;
