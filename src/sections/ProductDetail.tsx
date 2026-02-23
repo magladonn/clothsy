@@ -115,6 +115,9 @@ export function ProductDetail({ setView, product, setCartCount, setLastOrderId }
     notes: ''
   });
 
+  // ✅ THE FIX: Catch the original price whether it's spelled camelCase (React) or snake_case (Supabase)
+  const actualOriginalPrice = product.originalPrice || (product as any).original_price;
+
   useEffect(() => {
     setActiveImage(product.images[0]);
     setSelectedColor(product.colors && product.colors.length > 0 ? product.colors[0] : '');
@@ -138,7 +141,6 @@ export function ProductDetail({ setView, product, setCartCount, setLastOrderId }
     setIsSubmitting(true);
 
     try {
-      // ✅ 1. Send Order to DataStore
       const newOrder = await dataStore.addOrder({
         productId: product.id,
         productCode: product.code,
@@ -156,12 +158,10 @@ export function ProductDetail({ setView, product, setCartCount, setLastOrderId }
         notes: customerData.notes || ''
       });
 
-      // ✅ 2. Store Order ID for Confirmation Page
       if (newOrder) {
         setLastOrderId(newOrder.id);
       }
 
-      // ✅ 3. Show Success & Redirect
       setOrderSubmitted(true);
       setCartCount((prev: number) => prev + 1);
       
@@ -399,15 +399,15 @@ export function ProductDetail({ setView, product, setCartCount, setLastOrderId }
           <p className="text-sm text-gray-500 mb-2">{product.code}</p>
           <h1 className="text-3xl md:text-4xl font-bold mb-4">{product.name}</h1>
           
-          {/* Stacked Prices Display */}
+          {/* ✅ UPDATED: Stacked Prices Display using our new variable */}
           <div className="flex flex-col mb-6 mt-1">
-            {product.originalPrice && product.originalPrice > product.price ? (
+            {actualOriginalPrice && actualOriginalPrice > product.price ? (
               <>
-                <span className="text-lg text-gray-400 line-through leading-none pb-1">{formatPrice(product.originalPrice)}</span>
+                <span className="text-lg text-gray-400 line-through leading-none pb-1">{formatPrice(actualOriginalPrice)}</span>
                 <span className="text-3xl md:text-4xl font-bold leading-none">{formatPrice(product.price)}</span>
               </>
             ) : (
-              <span className="text-2xl font-medium mb-6">{formatPrice(product.price)}</span>
+              <span className="text-3xl md:text-4xl font-bold mb-6">{formatPrice(product.price)}</span>
             )}
           </div>
           
